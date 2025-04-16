@@ -104,14 +104,11 @@ if file1 and file2:
             except:
                 pass
 
-        # RECOMPUTE numeric fields AFTER conversion
-        numeric1 = df1.select_dtypes("number").columns.tolist()
-        numeric2 = df2.select_dtypes("number").columns.tolist()
-        common_numeric = sorted(set(numeric1) & set(numeric2))
+        # Use only user-selected override fields for comparison
+        common_fields = sorted(set(column_override1) & set(column_override2))
+        fields = st.multiselect("Numeric Fields to Summarize (must exist in both)", common_fields, default=common_fields)
 
-        fields = st.multiselect("Numeric Fields to Summarize", common_numeric, default=common_numeric)
         agg_options = st.multiselect("Aggregations", ["count", "sum", "avg"], default=["sum", "count"])
-
         run_button = st.button("▶️ Run Comparison")
 
         if run_button and fields and agg_options and group1 and group2:
