@@ -13,7 +13,7 @@ AGG_FUNCS = {
 
 def load_data(uploaded_file):
     if uploaded_file.name.endswith(".csv"):
-        return pd.read_csv(uploaded_file)
+        return pd.read_csv(uploaded_file, low_memory=False)
     elif uploaded_file.name.endswith((".xls", ".xlsx")):
         return pd.read_excel(uploaded_file)
     else:
@@ -88,14 +88,17 @@ if file1 and file2:
         group1 = st.selectbox("Grouping Field (File 1)", df1.columns)
         group2 = st.selectbox("Grouping Field (File 2)", df2.columns)
 
-        numeric1 = df1.select_dtypes("number").columns.tolist()
-        numeric2 = df2.select_dtypes("number").columns.tolist()
-
-        # Attempt to coerce all numeric-looking columns to actual numbers
+        # Try converting all columns to numeric where possible
         for col in df1.columns:
-            df1[col] = pd.to_numeric(df1[col], errors='ignore')
+            try:
+                df1[col] = pd.to_numeric(df1[col], errors='coerce')
+            except:
+                pass
         for col in df2.columns:
-            df2[col] = pd.to_numeric(df2[col], errors='ignore')
+            try:
+                df2[col] = pd.to_numeric(df2[col], errors='coerce')
+            except:
+                pass
 
         numeric1 = df1.select_dtypes("number").columns.tolist()
         numeric2 = df2.select_dtypes("number").columns.tolist()
