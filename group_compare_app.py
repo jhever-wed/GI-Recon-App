@@ -20,8 +20,8 @@ def load_data(uploaded_file):
         st.error("Unsupported file format.")
         return None
 
-def summarize(df, group_field, numeric_fields, agg_funcs):
-    summary = df.groupby(group_field)[numeric_fields].agg(agg_funcs)
+def summarize(df, group_fields, numeric_fields, agg_funcs):
+    summary = df.groupby(group_fields)[numeric_fields].agg(agg_funcs)
     summary.columns = ['_'.join(col).strip() for col in summary.columns.values]
     return summary.sort_index()
 
@@ -54,9 +54,10 @@ def compare_summaries(df1, df2):
 def generate_report(diffs):
     rows = []
     for group, differences in diffs:
+        group_str = group if isinstance(group, str) else ', '.join(map(str, group))
         for col, val1, val2 in differences:
             rows.append({
-                "Group": group,
+                "Group": group_str,
                 "Field": col,
                 "File 1 Value": val1,
                 "File 2 Value": val2
@@ -85,16 +86,19 @@ if file1 and file2:
         st.divider()
         st.subheader("🔧 Settings")
 
-        group1 = st.selectbox("Grouping Field (File 1)", df1.columns)
-        group2 = st.selectbox("Grouping Field (File 2)", df2.columns)
+        group1 = st.multiselect("Grouping Fields (File 1)", df1.columns)
+        group2 = st.multiselect("Grouping Fields (File 2)", df2.columns)
 
-        # Try converting all columns to numeric where possible
-        for col in df1.columns:
+        column_override1 = st.multiselect("Columns to treat as numeric (File 1)", df1.columns)
+        column_override2 = st.multiselect("Columns to treat as numeric (File 2)", df2.columns)
+
+        for col in column_override1:
             try:
                 df1[col] = pd.to_numeric(df1[col], errors='coerce')
             except:
                 pass
-        for col in df2.columns:
+
+        for col in column_override2:
             try:
                 df2[col] = pd.to_numeric(df2[col], errors='coerce')
             except:
@@ -109,7 +113,7 @@ if file1 and file2:
 
         run_button = st.button("▶️ Run Comparison")
 
-        if run_button and fields and agg_options:
+        if run_button and fields and agg_options and group1 and group2:
             agg_funcs = [AGG_FUNCS[a] for a in agg_options]
 
             summary1 = summarize(df1, group1, fields, agg_funcs)
