@@ -104,9 +104,9 @@ if file1 and file2:
             except:
                 pass
 
-        # Use only user-selected override fields for comparison
-        common_fields = sorted(set(column_override1) & set(column_override2))
-        fields = st.multiselect("Numeric Fields to Summarize (must exist in both)", common_fields, default=common_fields)
+        # NEW: allow selecting from any numeric fields, not just intersection
+        numeric_fields = sorted(set(column_override1 + column_override2))
+        fields = st.multiselect("Numeric Fields to Summarize", numeric_fields, default=numeric_fields)
 
         agg_options = st.multiselect("Aggregations", ["count", "sum", "avg"], default=["sum", "count"])
         run_button = st.button("▶️ Run Comparison")
