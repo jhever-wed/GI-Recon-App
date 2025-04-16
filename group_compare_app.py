@@ -104,6 +104,7 @@ if file1 and file2:
             except:
                 pass
 
+        # RECOMPUTE numeric fields AFTER conversion
         numeric1 = df1.select_dtypes("number").columns.tolist()
         numeric2 = df2.select_dtypes("number").columns.tolist()
         common_numeric = sorted(set(numeric1) & set(numeric2))
