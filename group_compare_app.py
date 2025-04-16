@@ -96,7 +96,9 @@ if file1 and file2:
 
         agg_options = st.multiselect("Aggregations", ["count", "sum", "avg"], default=["sum", "count"])
 
-        if fields and agg_options:
+        run_button = st.button("▶️ Run Comparison")
+
+        if run_button and fields and agg_options:
             agg_funcs = [AGG_FUNCS[a] for a in agg_options]
 
             summary1 = summarize(df1, group1, fields, agg_funcs)
