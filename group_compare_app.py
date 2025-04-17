@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
-st.set_page_config(page_title="Grouped Summary Comparator", layout="wide")
+st.set_page_config(page_title="Grouped Summary Comparator (Debug Mode)", layout="wide")
 
 AGG_FUNCS = {
     "count": "count",
@@ -71,7 +71,7 @@ def to_excel_bytes(df):
     return output.getvalue()
 
 # --- UI ---
-st.title("📊 Grouped Summary Comparator")
+st.title("📊 Grouped Summary Comparator (Debug Mode)")
 st.markdown("Compare two datasets by grouping and summarizing their numeric fields.")
 
 col1, col2 = st.columns(2)
@@ -92,21 +92,31 @@ if file1 and file2:
         column_override1 = st.multiselect("Columns to treat as numeric (File 1)", df1.columns)
         column_override2 = st.multiselect("Columns to treat as numeric (File 2)", df2.columns)
 
+        debug1 = {}
+        debug2 = {}
+
         for col in column_override1:
             try:
                 df1[col] = pd.to_numeric(df1[col], errors='coerce')
             except:
                 pass
+            debug1[col] = str(df1[col].dtype)
 
         for col in column_override2:
             try:
                 df2[col] = pd.to_numeric(df2[col], errors='coerce')
             except:
                 pass
+            debug2[col] = str(df2[col].dtype)
 
-        # NEW: allow selecting from any numeric fields, not just intersection
-        numeric_fields = sorted(set(column_override1 + column_override2))
-        fields = st.multiselect("Numeric Fields to Summarize", numeric_fields, default=numeric_fields)
+        all_fields = sorted(set(column_override1 + column_override2))
+        fields = st.multiselect("Numeric Fields to Summarize", all_fields, default=all_fields)
+
+        with st.expander("🔍 Debug Info"):
+            st.write("File 1 column types:")
+            st.json(debug1)
+            st.write("File 2 column types:")
+            st.json(debug2)
 
         agg_options = st.multiselect("Aggregations", ["count", "sum", "avg"], default=["sum", "count"])
         run_button = st.button("▶️ Run Comparison")
