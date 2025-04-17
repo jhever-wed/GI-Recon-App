@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
-st.set_page_config(page_title="Grouped Summary Comparator (Debug Mode)", layout="wide")
+st.set_page_config(page_title="Grouped Summary Comparator (with Mapping)", layout="wide")
 
 AGG_FUNCS = {
     "count": "count",
@@ -71,8 +71,8 @@ def to_excel_bytes(df):
     return output.getvalue()
 
 # --- UI ---
-st.title("📊 Grouped Summary Comparator (Debug Mode)")
-st.markdown("Compare two datasets by grouping and summarizing their numeric fields.")
+st.title("📊 Grouped Summary Comparator (with Field Mapping)")
+st.markdown("Compare two datasets by grouping and summarizing their numeric fields. Supports custom field mapping.")
 
 col1, col2 = st.columns(2)
 file1 = col1.file_uploader("Upload File 1 (CSV/XLSX)", type=["csv", "xlsx", "xls"])
@@ -89,46 +89,38 @@ if file1 and file2:
         group1 = st.multiselect("Grouping Fields (File 1)", df1.columns)
         group2 = st.multiselect("Grouping Fields (File 2)", df2.columns)
 
-        column_override1 = st.multiselect("Columns to treat as numeric (File 1)", df1.columns)
-        column_override2 = st.multiselect("Columns to treat as numeric (File 2)", df2.columns)
+        override1 = st.multiselect("File 1 Numeric Fields", df1.columns)
+        override2 = st.multiselect("File 2 Numeric Fields", df2.columns)
 
-        debug1 = {}
-        debug2 = {}
+        # Convert selected columns to numeric
+        for col in override1:
+            df1[col] = pd.to_numeric(df1[col], errors='coerce')
+        for col in override2:
+            df2[col] = pd.to_numeric(df2[col], errors='coerce')
 
-        for col in column_override1:
-            try:
-                df1[col] = pd.to_numeric(df1[col], errors='coerce')
-            except:
-                pass
-            debug1[col] = str(df1[col].dtype)
-
-        for col in column_override2:
-            try:
-                df2[col] = pd.to_numeric(df2[col], errors='coerce')
-            except:
-                pass
-            debug2[col] = str(df2[col].dtype)
-
-        all_fields = sorted(set(column_override1 + column_override2))
-        fields = st.multiselect("Numeric Fields to Summarize", all_fields, default=all_fields)
-
-        with st.expander("🔍 Debug Info"):
-            st.write("File 1 column types:")
-            st.json(debug1)
-            st.write("File 2 column types:")
-            st.json(debug2)
+        st.subheader("🔁 Field Mapping")
+        mapping = {}
+        for col1 in override1:
+            col2 = st.selectbox(f"Map File 1 field '{col1}' to File 2 field:", override2, key=f"map_{col1}")
+            mapping[col1] = col2
 
         agg_options = st.multiselect("Aggregations", ["count", "sum", "avg"], default=["sum", "count"])
         run_button = st.button("▶️ Run Comparison")
 
-        if run_button and fields and agg_options and group1 and group2:
+        if run_button and group1 and group2 and mapping and agg_options:
             agg_funcs = [AGG_FUNCS[a] for a in agg_options]
 
-            summary1 = summarize(df1, group1, fields, agg_funcs)
-            summary2 = summarize(df2, group2, fields, agg_funcs)
+            df1_renamed = df1.rename(columns=mapping)
+            df2_renamed = df2.copy()
+
+            mapped_fields = list(mapping.values())
+
+            summary1 = summarize(df1_renamed, group1, mapped_fields, agg_funcs)
+            summary2 = summarize(df2_renamed, group2, mapped_fields, agg_funcs)
 
             st.divider()
             st.subheader("📈 Summary Comparison Results")
+
             diffs = compare_summaries(summary1, summary2)
 
             if diffs:
