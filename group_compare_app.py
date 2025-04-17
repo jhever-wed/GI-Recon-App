@@ -80,7 +80,20 @@ file2 = col2.file_uploader("Upload GMI File (CSV/XLSX)", type=["csv", "xlsx", "x
 
 if file1 and file2:
     df1 = load_data(file1)
+    
     df1 = df1[df1["RecordType"] == "TR"] if "RecordType" in df1.columns else df1
+
+    st.subheader("📅 Month Filter")
+
+    month_col_1 = st.selectbox("Select Month Column in Atlantis", df1.columns)
+    month_col_2 = st.selectbox("Select Month Column in GMI", df2.columns)
+
+    selected_month_1 = st.selectbox("Select Month Value for Atlantis", sorted(df1[month_col_1].dropna().unique()))
+    selected_month_2 = st.selectbox("Select Month Value for GMI", sorted(df2[month_col_2].dropna().unique()))
+
+    df1 = df1[df1[month_col_1] == selected_month_1]
+    df2 = df2[df2[month_col_2] == selected_month_2]
+    
     df2 = load_data(file2)
 
     if df1 is not None and df2 is not None:
