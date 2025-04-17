@@ -118,8 +118,40 @@ if file1 and file2:
             summary1 = summarize(df1_renamed, group1, mapped_fields, agg_funcs)
             summary2 = summarize(df2_renamed, group2, mapped_fields, agg_funcs)
 
+            
+            st.divider()
+            st.subheader("🧪 Summary Debug Preview")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("#### File 1 Summary")
+                st.dataframe(summary1)
+
+            with col2:
+                st.markdown("#### File 2 Summary")
+                st.dataframe(summary2)
+
+            st.markdown("### 🕵️ Mismatch Diagnostics")
+            missing_fields_1 = [col for col in summary2.columns if col not in summary1.columns]
+            missing_fields_2 = [col for col in summary1.columns if col not in summary2.columns]
+            missing_groups_1 = [idx for idx in summary2.index if idx not in summary1.index]
+            missing_groups_2 = [idx for idx in summary1.index if idx not in summary2.index]
+
+            if missing_fields_1 or missing_fields_2 or missing_groups_1 or missing_groups_2:
+                if missing_fields_1:
+                    st.warning(f"Fields present in File 2 but missing in File 1: {missing_fields_1}")
+                if missing_fields_2:
+                    st.warning(f"Fields present in File 1 but missing in File 2: {missing_fields_2}")
+                if missing_groups_1:
+                    st.info(f"Groups found in File 2 but not in File 1: {missing_groups_1}")
+                if missing_groups_2:
+                    st.info(f"Groups found in File 1 but not in File 2: {missing_groups_2}")
+            else:
+                st.success("✅ All summary fields and groups align!")
+    
             st.divider()
             st.subheader("📈 Summary Comparison Results")
+    
 
             diffs = compare_summaries(summary1, summary2)
 
