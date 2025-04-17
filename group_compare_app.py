@@ -79,24 +79,28 @@ file1 = col1.file_uploader("Upload Atlantis File (CSV/XLSX)", type=["csv", "xlsx
 file2 = col2.file_uploader("Upload GMI File (CSV/XLSX)", type=["csv", "xlsx", "xls"])
 
 if file1 and file2:
+    
     df1 = load_data(file1)
+    df2 = load_data(file2)
+
+    if df1 is not None and df2 is not None:
+        df1 = df1[df1["RecordType"] == "TR"] if "RecordType" in df1.columns else df1
+
+        st.subheader("📅 Month Filter")
+
+        if "TradeDate" in df1.columns:
+            df1["TradeDate"] = pd.to_datetime(df1["TradeDate"], errors="coerce")
+            months1 = sorted(df1["TradeDate"].dropna().dt.to_period("M").astype(str).unique())
+            selected_month_1 = st.selectbox("Select Month (Atlantis - based on TradeDate)", months1)
+            df1 = df1[df1["TradeDate"].dt.to_period("M").astype(str) == selected_month_1]
+
+        if "TEDATE" in df2.columns:
+            df2["TEDATE"] = pd.to_datetime(df2["TEDATE"], errors="coerce")
+            months2 = sorted(df2["TEDATE"].dropna().dt.to_period("M").astype(str).unique())
+            selected_month_2 = st.selectbox("Select Month (GMI - based on TEDATE)", months2)
+            df2 = df2[df2["TEDATE"].dt.to_period("M").astype(str) == selected_month_2]
     
     df1 = df1[df1["RecordType"] == "TR"] if "RecordType" in df1.columns else df1
-
-    st.subheader("📅 Month Filter")
-
-    if "TradeDate" in df1.columns:
-        df1["TradeDate"] = pd.to_datetime(df1["TradeDate"], errors="coerce")
-        months1 = sorted(df1["TradeDate"].dropna().dt.to_period("M").astype(str).unique())
-        selected_month_1 = st.selectbox("Select Month (Atlantis - based on TradeDate)", months1)
-        df1 = df1[df1["TradeDate"].dt.to_period("M").astype(str) == selected_month_1]
-
-    if "TEDATE" in df2.columns:
-        df2["TEDATE"] = pd.to_datetime(df2["TEDATE"], errors="coerce")
-        months2 = sorted(df2["TEDATE"].dropna().dt.to_period("M").astype(str).unique())
-        selected_month_2 = st.selectbox("Select Month (GMI - based on TEDATE)", months2)
-        df2 = df2[df2["TEDATE"].dt.to_period("M").astype(str) == selected_month_2]
-    
     df2 = load_data(file2)
 
     if df1 is not None and df2 is not None:
