@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
-st.set_page_config(page_title="Grouped Summary Comparator (with Mapping)", layout="wide")
+st.set_page_config(page_title="Grouped Summary Comparator (with Field Mapping)", layout="wide")
 
 AGG_FUNCS = {
     "count": "count",
@@ -75,24 +75,24 @@ st.title("📊 Grouped Summary Comparator (with Field Mapping)")
 st.markdown("Compare two datasets by grouping and summarizing their numeric fields. Supports custom field mapping.")
 
 col1, col2 = st.columns(2)
-file1 = col1.file_uploader("Upload File 1 (CSV/XLSX)", type=["csv", "xlsx", "xls"])
-file2 = col2.file_uploader("Upload File 2 (CSV/XLSX)", type=["csv", "xlsx", "xls"])
+file1 = col1.file_uploader("Upload Atlantis File (CSV/XLSX)", type=["csv", "xlsx", "xls"])
+file2 = col2.file_uploader("Upload GMI File (CSV/XLSX)", type=["csv", "xlsx", "xls"])
 
 if file1 and file2:
     df1 = load_data(file1)
+    df1 = df1[df1["RecordType"] == "TR"] if "RecordType" in df1.columns else df1
     df2 = load_data(file2)
 
     if df1 is not None and df2 is not None:
         st.divider()
         st.subheader("🔧 Settings")
 
-        group1 = st.multiselect("Grouping Fields (File 1)", df1.columns)
-        group2 = st.multiselect("Grouping Fields (File 2)", df2.columns)
+        group1 = st.multiselect("Atlantis Grouping Fields", df1.columns)
+        group2 = st.multiselect("GMI Grouping Fields", df2.columns)
 
-        override1 = st.multiselect("File 1 Numeric Fields", df1.columns)
-        override2 = st.multiselect("File 2 Numeric Fields", df2.columns)
+        override1 = st.multiselect("Atlantis Numeric Fields", df1.columns)
+        override2 = st.multiselect("GMI Numeric Fields", df2.columns)
 
-        # Convert selected columns to numeric
         for col in override1:
             df1[col] = pd.to_numeric(df1[col], errors='coerce')
         for col in override2:
@@ -101,7 +101,7 @@ if file1 and file2:
         st.subheader("🔁 Field Mapping")
         mapping = {}
         for col1 in override1:
-            col2 = st.selectbox(f"Map File 1 field '{col1}' to File 2 field:", override2, key=f"map_{col1}")
+            col2 = st.selectbox(f"Map Atlantis field '{col1}' to GMI field:", override2, key=f"map_{col1}")
             mapping[col1] = col2
 
         agg_options = st.multiselect("Aggregations", ["count", "sum", "avg"], default=["sum", "count"])
@@ -109,26 +109,22 @@ if file1 and file2:
 
         if run_button and group1 and group2 and mapping and agg_options:
             agg_funcs = [AGG_FUNCS[a] for a in agg_options]
-
             df1_renamed = df1.rename(columns=mapping)
             df2_renamed = df2.copy()
-
             mapped_fields = list(mapping.values())
 
             summary1 = summarize(df1_renamed, group1, mapped_fields, agg_funcs)
             summary2 = summarize(df2_renamed, group2, mapped_fields, agg_funcs)
 
-            
             st.divider()
             st.subheader("🧪 Summary Debug Preview")
 
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown("#### File 1 Summary")
+                st.markdown("#### Atlantis Summary")
                 st.dataframe(summary1)
-
             with col2:
-                st.markdown("#### File 2 Summary")
+                st.markdown("#### GMI Summary")
                 st.dataframe(summary2)
 
             st.markdown("### 🕵️ Mismatch Diagnostics")
@@ -139,20 +135,18 @@ if file1 and file2:
 
             if missing_fields_1 or missing_fields_2 or missing_groups_1 or missing_groups_2:
                 if missing_fields_1:
-                    st.warning(f"Fields present in File 2 but missing in File 1: {missing_fields_1}")
+                    st.warning(f"Fields present in GMI but missing in Atlantis: {missing_fields_1}")
                 if missing_fields_2:
-                    st.warning(f"Fields present in File 1 but missing in File 2: {missing_fields_2}")
+                    st.warning(f"Fields present in Atlantis but missing in GMI: {missing_fields_2}")
                 if missing_groups_1:
-                    st.info(f"Groups found in File 2 but not in File 1: {missing_groups_1}")
+                    st.info(f"Groups found in GMI but not in Atlantis: {missing_groups_1}")
                 if missing_groups_2:
-                    st.info(f"Groups found in File 1 but not in File 2: {missing_groups_2}")
+                    st.info(f"Groups found in Atlantis but not in GMI: {missing_groups_2}")
             else:
                 st.success("✅ All summary fields and groups align!")
-    
+
             st.divider()
             st.subheader("📈 Summary Comparison Results")
-    
-
             diffs = compare_summaries(summary1, summary2)
 
             if diffs:
