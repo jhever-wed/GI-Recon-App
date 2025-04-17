@@ -85,14 +85,17 @@ if file1 and file2:
 
     st.subheader("📅 Month Filter")
 
-    month_col_1 = st.selectbox("Select Month Column in Atlantis", df1.columns)
-    month_col_2 = st.selectbox("Select Month Column in GMI", df2.columns)
+    if "TradeDate" in df1.columns:
+        df1["TradeDate"] = pd.to_datetime(df1["TradeDate"], errors="coerce")
+        months1 = sorted(df1["TradeDate"].dropna().dt.to_period("M").astype(str).unique())
+        selected_month_1 = st.selectbox("Select Month (Atlantis - based on TradeDate)", months1)
+        df1 = df1[df1["TradeDate"].dt.to_period("M").astype(str) == selected_month_1]
 
-    selected_month_1 = st.selectbox("Select Month Value for Atlantis", sorted(df1[month_col_1].dropna().unique()))
-    selected_month_2 = st.selectbox("Select Month Value for GMI", sorted(df2[month_col_2].dropna().unique()))
-
-    df1 = df1[df1[month_col_1] == selected_month_1]
-    df2 = df2[df2[month_col_2] == selected_month_2]
+    if "TEDATE" in df2.columns:
+        df2["TEDATE"] = pd.to_datetime(df2["TEDATE"], errors="coerce")
+        months2 = sorted(df2["TEDATE"].dropna().dt.to_period("M").astype(str).unique())
+        selected_month_2 = st.selectbox("Select Month (GMI - based on TEDATE)", months2)
+        df2 = df2[df2["TEDATE"].dt.to_period("M").astype(str) == selected_month_2]
     
     df2 = load_data(file2)
 
