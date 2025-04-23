@@ -48,12 +48,12 @@ def compare_summaries(df1, df2):
                 val2 = row2.get(col, "N/A")
                 mismatch = False
                 if isinstance(val1, (pd.Series, pd.DataFrame)) or isinstance(val2, (pd.Series, pd.DataFrame)):
-        mismatch = True
-    else:
-        try:
-            mismatch = not np.isclose(val1, val2, equal_nan=True)
-        except:
-            mismatch = val1 != val2
+                    mismatch = True
+                else:
+                    try:
+                        mismatch = not np.isclose(val1, val2, equal_nan=True)
+                    except:
+                        mismatch = val1 != val2
     if mismatch:
         row_diff.append((col, val1, val2))
         logging.info(f"Mismatch in group={group}, field={col}, val1={val1}, val2={val2}")
