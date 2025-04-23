@@ -176,7 +176,7 @@ else:
     summary2 = summarize(df2_renamed, group2, mapped_fields, agg_funcs)
 
     diffs = compare_summaries(summary1, summary2)
-            st.divider()
+    st.divider()
             st.subheader("Comparison Results")
 
             if diffs:
