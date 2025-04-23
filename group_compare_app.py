@@ -49,7 +49,7 @@ def compare_summaries(df1, df2):
             mismatch = False
             if isinstance(val1, (pd.Series, pd.DataFrame)) or isinstance(val2, (pd.Series, pd.DataFrame)):
                 mismatch = True
-            else:
+    else:
                 try:
                     mismatch = not np.isclose(val1, val2, equal_nan=True)
                 except:
@@ -74,7 +74,7 @@ def compare_summaries(df1, df2):
             mismatch = False
             if isinstance(val1, (pd.Series, pd.DataFrame)) or isinstance(val2, (pd.Series, pd.DataFrame)):
                 mismatch = True
-            else:
+    else:
                 try:
                     mismatch = not np.isclose(val1, val2, equal_nan=True)
                 except:
@@ -119,7 +119,7 @@ file_ytd = st.file_uploader("Optional: Upload GMI YTD File", type=["csv", "xlsx"
 
 if file1 is None or file2 is None:
     st.warning("🚨 Please upload both Atlantis and GMI files to continue.")
-else:
+    else:
 
     df1 = load_data(file1)
     df2 = load_data(file2)
@@ -201,5 +201,5 @@ else:
                             st.dataframe(final_exceptions, use_container_width=True)
                             final_excel = to_excel_bytes(final_exceptions)
                             st.download_button("Download Final Exceptions", data=final_excel, file_name="final_exceptions.xlsx")
-            else:
+    else:
                 st.success("✅ All group summaries match!")
