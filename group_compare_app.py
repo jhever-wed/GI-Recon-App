@@ -169,6 +169,17 @@ else:
 
     agg_funcs = ['sum']
     summary1 = summarize(df1_renamed, group1, mapped_fields, agg_funcs)
+    if not group1 or not group2:
+        st.warning('⚠️ Please select at least one grouping field for both files.')
+        st.stop()
+
+    # Validate numeric fields exist in both dataframes
+    missing1 = [f for f in mapped_fields if f not in df1_renamed.columns]
+    missing2 = [f for f in mapped_fields if f not in df2_renamed.columns]
+    if missing1 or missing2:
+        st.error(f"Missing columns: File 1 ➜ {missing1}, File 2 ➜ {missing2}")
+        st.stop()
+
     summary2 = summarize(df2_renamed, group2, mapped_fields, agg_funcs)
 
     diffs = compare_summaries(summary1, summary2)
