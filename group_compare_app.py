@@ -22,7 +22,20 @@ def summarize(df, group_fields, numeric_fields, agg_funcs):
     return summary.sort_index()
 
 
+import logging
+logging.basicConfig(filename="comparison_log.txt", level=logging.INFO, format="%(asctime)s - %(message)s")
+
+
+import logging
+logging.basicConfig(filename="comparison_log.txt", level=logging.INFO, format="%(asctime)s - %(message)s")
+
+def log_summary_stats(df1, df2):
+    logging.info(f"Atlantis summary shape: {df1.shape}")
+    logging.info(f"GMI summary shape: {df2.shape}")
+    logging.info(f"Shared group keys: {len(set(df1.index).intersection(df2.index))}")
+
 def compare_summaries(df1, df2):
+    log_summary_stats(df1, df2)
     diffs = []
     all_groups = sorted(set(df1.index).union(df2.index))
     for group in all_groups:
@@ -42,6 +55,32 @@ def compare_summaries(df1, df2):
                 except:
                     mismatch = val1 != val2
             if mismatch:
+                row_diff.append((col, val1, val2))
+                logging.info(f"Mismatch in group={group}, field={col}, val1={val1}, val2={val2}")
+        if row_diff:
+            diffs.append((group, row_diff))
+    return diffs
+
+    diffs = []
+    all_groups = sorted(set(df1.index).union(df2.index))
+    for group in all_groups:
+        row1 = df1.loc[group] if group in df1.index else pd.Series()
+        row2 = df2.loc[group] if group in df2.index else pd.Series()
+        row_diff = []
+        all_cols = set(row1.index).union(row2.index)
+        for col in all_cols:
+            val1 = row1.get(col, "N/A")
+            val2 = row2.get(col, "N/A")
+            mismatch = False
+            if isinstance(val1, (pd.Series, pd.DataFrame)) or isinstance(val2, (pd.Series, pd.DataFrame)):
+                mismatch = True
+            else:
+                try:
+                    mismatch = not np.isclose(val1, val2, equal_nan=True)
+                except:
+                    mismatch = val1 != val2
+            if mismatch:
+                logging.info(f"Mismatch in group={group}, field={col}, val1={val1}, val2={val2}")
                 row_diff.append((col, val1, val2))
         if row_diff:
             diffs.append((group, row_diff))
@@ -123,7 +162,7 @@ if file1 and file2:
     if skipped_mappings:
         st.info(f"Skipped renaming these fields because they're used for grouping: {list(skipped_mappings.keys())}")
     df1_renamed = df1.rename(columns=safe_mapping)
-
+    
             df2_renamed = df2.copy()
             mapped_fields = list(mapping.values())
 
@@ -140,6 +179,9 @@ if file1 and file2:
                 excel_data = to_excel_bytes(report_df)
                 st.download_button("Download Comparison Report", data=excel_data, file_name="comparison.xlsx")
 
+                with open("comparison_log.txt", "rb") as log_file:
+                    st.download_button("Download Comparison Log", data=log_file.read(), file_name="comparison_log.txt")
+
                 if file_ytd:
                     gmi_ytd = load_data(file_ytd)
                     if gmi_ytd is not None:
@@ -148,6 +190,7 @@ if file1 and file2:
                             merged = pd.merge(report_df, gmi_ytd, how="left", on=match_keys, indicator=True)
                             unmatched = merged[merged["_merge"] == "left_only"]
                             final_exceptions = unmatched[report_df.columns]
+                            logging.info(f"Final unmatched exceptions after GMI YTD: {len(final_exceptions)} rows")
                             st.subheader("Final Exceptions After GMI YTD")
                             st.dataframe(final_exceptions, use_container_width=True)
                             final_excel = to_excel_bytes(final_exceptions)
