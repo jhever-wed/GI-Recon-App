@@ -177,7 +177,7 @@ else:
 
     diffs = compare_summaries(summary1, summary2)
     st.divider()
-            st.subheader("Comparison Results")
+    st.subheader("Comparison Results")
 
             if diffs:
                 report_df = generate_report(diffs)
