@@ -172,8 +172,8 @@ else:
     df2_renamed = df2.copy()
     mapped_fields = list(mapping.values())
 
-            summary1 = summarize(df1_renamed, group1, mapped_fields, agg_funcs)
-            summary2 = summarize(df2_renamed, group2, mapped_fields, agg_funcs)
+    summary1 = summarize(df1_renamed, group1, mapped_fields, agg_funcs)
+    summary2 = summarize(df2_renamed, group2, mapped_fields, agg_funcs)
 
             diffs = compare_summaries(summary1, summary2)
             st.divider()
