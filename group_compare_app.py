@@ -161,14 +161,14 @@ else:
 
         if run_button and group1 and group2 and mapping and agg_options:
             agg_funcs = [AGG_FUNCS[a] for a in agg_options]
-            
+
     # Auto-fix: skip renaming of any mapping where the source is also in group1
     safe_mapping = {k: v for k, v in mapping.items() if k not in group1}
     skipped_mappings = {k: v for k, v in mapping.items() if k in group1}
     if skipped_mappings:
         st.info(f"Skipped renaming these fields because they're used for grouping: {list(skipped_mappings.keys())}")
     df1_renamed = df1.rename(columns=safe_mapping)
-    
+
         df2_renamed = df2.copy()
             mapped_fields = list(mapping.values())
 
