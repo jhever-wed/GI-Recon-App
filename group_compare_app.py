@@ -43,7 +43,7 @@ def compare_summaries(df1, df2):
         row2 = df2.loc[group] if group in df2.index else pd.Series()
         row_diff = []
         all_cols = set(row1.index).union(row2.index)
-            for col in all_cols:
+        for col in all_cols:
                 val1 = row1.get(col, "N/A")
                 val2 = row2.get(col, "N/A")
                 mismatch = False
