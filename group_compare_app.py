@@ -163,7 +163,7 @@ if file1 and file2:
         st.info(f"Skipped renaming these fields because they're used for grouping: {list(skipped_mappings.keys())}")
     df1_renamed = df1.rename(columns=safe_mapping)
     
-            df2_renamed = df2.copy()
+        df2_renamed = df2.copy()
             mapped_fields = list(mapping.values())
 
             summary1 = summarize(df1_renamed, group1, mapped_fields, agg_funcs)
