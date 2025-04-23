@@ -35,58 +35,56 @@ def log_summary_stats(df1, df2):
     logging.info(f"Shared group keys: {len(set(df1.index).intersection(df2.index))}")
 
 def compare_summaries(df1, df2):
-    log_summary_stats(df1, df2)
-    diffs = []
-    all_groups = sorted(set(df1.index).union(df2.index))
-    for group in all_groups:
-        row1 = df1.loc[group] if group in df1.index else pd.Series()
-        row2 = df2.loc[group] if group in df2.index else pd.Series()
-        row_diff = []
-        all_cols = set(row1.index).union(row2.index)
-        for col in all_cols:
-            val1 = row1.get(col, "N/A")
-            val2 = row2.get(col, "N/A")
-            mismatch = False
-            if isinstance(val1, (pd.Series, pd.DataFrame)) or isinstance(val2, (pd.Series, pd.DataFrame)):
-                mismatch = True
-    else:
-                try:
-                    mismatch = not np.isclose(val1, val2, equal_nan=True)
-                except:
-                    mismatch = val1 != val2
-            if mismatch:
-                row_diff.append((col, val1, val2))
-                logging.info(f"Mismatch in group={group}, field={col}, val1={val1}, val2={val2}")
-        if row_diff:
-            diffs.append((group, row_diff))
-    return diffs
-
-    diffs = []
-    all_groups = sorted(set(df1.index).union(df2.index))
-    for group in all_groups:
-        row1 = df1.loc[group] if group in df1.index else pd.Series()
-        row2 = df2.loc[group] if group in df2.index else pd.Series()
-        row_diff = []
-        all_cols = set(row1.index).union(row2.index)
-        for col in all_cols:
-            val1 = row1.get(col, "N/A")
-            val2 = row2.get(col, "N/A")
-            mismatch = False
-            if isinstance(val1, (pd.Series, pd.DataFrame)) or isinstance(val2, (pd.Series, pd.DataFrame)):
-                mismatch = True
-    else:
-                try:
-                    mismatch = not np.isclose(val1, val2, equal_nan=True)
-                except:
-                    mismatch = val1 != val2
-            if mismatch:
-                logging.info(f"Mismatch in group={group}, field={col}, val1={val1}, val2={val2}")
-                row_diff.append((col, val1, val2))
-        if row_diff:
-            diffs.append((group, row_diff))
-    return diffs
-
-def generate_report(diffs):
+        log_summary_stats(df1, df2)
+        diffs = []
+        all_groups = sorted(set(df1.index).union(df2.index))
+        for group in all_groups:
+            row1 = df1.loc[group] if group in df1.index else pd.Series()
+            row2 = df2.loc[group] if group in df2.index else pd.Series()
+            row_diff = []
+            all_cols = set(row1.index).union(row2.index)
+            for col in all_cols:
+                val1 = row1.get(col, "N/A")
+                val2 = row2.get(col, "N/A")
+                mismatch = False
+                if isinstance(val1, (pd.Series, pd.DataFrame)) or isinstance(val2, (pd.Series, pd.DataFrame)):
+                    mismatch = True
+        else:
+                    try:
+                        mismatch = not np.isclose(val1, val2, equal_nan=True)
+                    except:
+                        mismatch = val1 != val2
+                if mismatch:
+                    row_diff.append((col, val1, val2))
+                    logging.info(f"Mismatch in group={group}, field={col}, val1={val1}, val2={val2}")
+            if row_diff:
+                diffs.append((group, row_diff))
+        return diffs
+            diffs = []
+        all_groups = sorted(set(df1.index).union(df2.index))
+        for group in all_groups:
+            row1 = df1.loc[group] if group in df1.index else pd.Series()
+            row2 = df2.loc[group] if group in df2.index else pd.Series()
+            row_diff = []
+            all_cols = set(row1.index).union(row2.index)
+            for col in all_cols:
+                val1 = row1.get(col, "N/A")
+                val2 = row2.get(col, "N/A")
+                mismatch = False
+                if isinstance(val1, (pd.Series, pd.DataFrame)) or isinstance(val2, (pd.Series, pd.DataFrame)):
+                    mismatch = True
+        else:
+                    try:
+                        mismatch = not np.isclose(val1, val2, equal_nan=True)
+                    except:
+                        mismatch = val1 != val2
+                if mismatch:
+                    logging.info(f"Mismatch in group={group}, field={col}, val1={val1}, val2={val2}")
+                    row_diff.append((col, val1, val2))
+            if row_diff:
+                diffs.append((group, row_diff))
+        return diffs
+    def generate_report(diffs):
     rows = []
     for group, differences in diffs:
         group_str = group if isinstance(group, str) else ', '.join(map(str, group))
