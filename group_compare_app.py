@@ -39,7 +39,18 @@ def compare_summaries(df1, df2):
                     continue
             except:
                 pass
-            if val1 != val2:
+            
+    import numpy as np
+    if isinstance(val1, (pd.Series, pd.DataFrame)) or isinstance(val2, (pd.Series, pd.DataFrame)):
+        mismatch = True
+    else:
+        try:
+            mismatch = not np.isclose(val1, val2, equal_nan=True)
+        except:
+            mismatch = val1 != val2
+
+    if mismatch:
+
                 row_diff.append((col, val1, val2))
         if row_diff:
             diffs.append((group, row_diff))
