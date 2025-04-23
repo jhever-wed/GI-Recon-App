@@ -81,7 +81,7 @@ def compare_summaries(df1, df2):
             row_diff.append((col, val1, val2))
             if row_diff:
                 diffs.append((group, row_diff))
-    def generate_report(diffs):
+def generate_report(diffs):
     rows = []
     for group, differences in diffs:
         group_str = group if isinstance(group, str) else ', '.join(map(str, group))
