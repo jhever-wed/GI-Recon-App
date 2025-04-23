@@ -36,13 +36,13 @@ def log_summary_stats(df1, df2):
 
 def compare_summaries(df1, df2):
     diffs = []
-        log_summary_stats(df1, df2)
-        all_groups = sorted(set(df1.index).union(df2.index))
-        for group in all_groups:
-            row1 = df1.loc[group] if group in df1.index else pd.Series()
-            row2 = df2.loc[group] if group in df2.index else pd.Series()
-            row_diff = []
-            all_cols = set(row1.index).union(row2.index)
+    log_summary_stats(df1, df2)
+    all_groups = sorted(set(df1.index).union(df2.index))
+    for group in all_groups:
+        row1 = df1.loc[group] if group in df1.index else pd.Series()
+        row2 = df2.loc[group] if group in df2.index else pd.Series()
+        row_diff = []
+        all_cols = set(row1.index).union(row2.index)
             for col in all_cols:
                 val1 = row1.get(col, "N/A")
                 val2 = row2.get(col, "N/A")
