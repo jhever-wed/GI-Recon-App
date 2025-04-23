@@ -35,8 +35,8 @@ def log_summary_stats(df1, df2):
     logging.info(f"Shared group keys: {len(set(df1.index).intersection(df2.index))}")
 
 def compare_summaries(df1, df2):
+    diffs = []
         log_summary_stats(df1, df2)
-        diffs = []
         all_groups = sorted(set(df1.index).union(df2.index))
         for group in all_groups:
             row1 = df1.loc[group] if group in df1.index else pd.Series()
@@ -59,8 +59,6 @@ def compare_summaries(df1, df2):
                     logging.info(f"Mismatch in group={group}, field={col}, val1={val1}, val2={val2}")
             if row_diff:
                 diffs.append((group, row_diff))
-        return diffs
-            diffs = []
         all_groups = sorted(set(df1.index).union(df2.index))
         for group in all_groups:
             row1 = df1.loc[group] if group in df1.index else pd.Series()
@@ -83,7 +81,6 @@ def compare_summaries(df1, df2):
                     row_diff.append((col, val1, val2))
             if row_diff:
                 diffs.append((group, row_diff))
-        return diffs
     def generate_report(diffs):
     rows = []
     for group, differences in diffs:
