@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
-st.set_page_config(page_title="Grouped Summary Comparator (v17)", layout="wide")
+st.set_page_config(page_title="Grouped Summary Comparator (v18)", layout="wide")
 
 AGG_FUNCS = {"count": "count", "sum": "sum", "avg": "mean"}
 
@@ -64,7 +64,7 @@ def to_excel_bytes(df):
         df.to_excel(writer, index=False)
     return output.getvalue()
 
-st.title("📊 Grouped Summary Comparator (v17)")
+st.title("📊 Grouped Summary Comparator (v18)")
 
 # --- File uploads ---
 col1, col2 = st.columns(2)
@@ -81,13 +81,13 @@ if file1 and file2:
         df1 = df1[df1["RecordType"] == "TR"] if "RecordType" in df1.columns else df1
 
         if "TradeDate" in df1.columns:
-            df1["TradeDate"] = pd.to_datetime(df1["TradeDate"], errors="coerce")
+            df1["TradeDate"] = pd.to_datetime(df1["TradeDate"], format="%Y%m%d", errors="coerce")
             months1 = sorted(df1["TradeDate"].dropna().dt.to_period("M").astype(str).unique())
             selected_month_1 = st.selectbox("Select Month (Atlantis - TradeDate)", months1)
             df1 = df1[df1["TradeDate"].dt.to_period("M").astype(str) == selected_month_1]
 
         if "TEDATE" in df2.columns:
-            df2["TEDATE"] = pd.to_datetime(df2["TEDATE"], errors="coerce")
+            df2["TEDATE"] = pd.to_datetime(df2["TEDATE"], format="%Y%m%d", errors="coerce")
             months2 = sorted(df2["TEDATE"].dropna().dt.to_period("M").astype(str).unique())
             selected_month_2 = st.selectbox("Select Month (GMI - TEDATE)", months2)
             df2 = df2[df2["TEDATE"].dt.to_period("M").astype(str) == selected_month_2]
