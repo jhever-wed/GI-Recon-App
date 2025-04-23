@@ -54,11 +54,11 @@ def compare_summaries(df1, df2):
                         mismatch = not np.isclose(val1, val2, equal_nan=True)
                     except:
                         mismatch = val1 != val2
-    if mismatch:
-        row_diff.append((col, val1, val2))
-        logging.info(f"Mismatch in group={group}, field={col}, val1={val1}, val2={val2}")
-    if row_diff:
-        diffs.append((group, row_diff))
+                if mismatch:
+                    row_diff.append((col, val1, val2))
+                    logging.info(f"Mismatch in group={group}, field={col}, val1={val1}, val2={val2}")
+            if row_diff:
+                diffs.append((group, row_diff))
         return diffs
             diffs = []
         all_groups = sorted(set(df1.index).union(df2.index))
