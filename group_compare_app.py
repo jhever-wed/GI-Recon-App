@@ -179,7 +179,7 @@ else:
     st.divider()
     st.subheader("Comparison Results")
 
-            if diffs:
+    if diffs:
                 report_df = generate_report(diffs)
                 st.dataframe(report_df, use_container_width=True)
                 excel_data = to_excel_bytes(report_df)
