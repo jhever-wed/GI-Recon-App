@@ -123,7 +123,7 @@ if file1 and file2:
     if skipped_mappings:
         st.info(f"Skipped renaming these fields because they're used for grouping: {list(skipped_mappings.keys())}")
     df1_renamed = df1.rename(columns=safe_mapping)
-    
+
             df2_renamed = df2.copy()
             mapped_fields = list(mapping.values())
 
