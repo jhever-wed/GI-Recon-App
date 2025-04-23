@@ -108,7 +108,6 @@ def to_excel_bytes(df):
 
 st.title("📊 Grouped Summary Comparator (v27)")
 st.info("✅ App loaded successfully. Please upload both Atlantis and GMI files to begin.")
- (v18)")
 
 # --- File uploads ---
 col1, col2 = st.columns(2)
