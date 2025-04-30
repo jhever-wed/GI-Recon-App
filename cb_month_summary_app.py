@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
 import io
+import base64
 
-st.set_page_config(page_title="GI Reconciliation App", layout="wide")
-st.title("📊 GI Reconciliation App (Export Button on Top)")
+st.set_page_config(page_title="GI Reconciliation App - HTML Link", layout="wide")
+st.title("📊 GI Reconciliation App (Export via HTML Link)")
 
-# Hardcoded example data for testing
+# Sample matched and unmatched data
 matched = pd.DataFrame({
     'CB': ['100', '200'],
     'Date': ['2025-02-01', '2025-02-02'],
@@ -28,31 +29,24 @@ unmatched = pd.DataFrame({
     'Fee_Diff': [30.00]
 })
 
-# Metrics
-st.metric("✅ Total Matched Rows", len(matched))
-st.metric("⚠️ Total Unmatched Rows", len(unmatched))
-
-# EXPORT BUTTON AT TOP
-st.divider()
-st.subheader("📥 Export All Results")
-
-output = io.BytesIO()
-with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+# Create Excel in memory
+buffer = io.BytesIO()
+with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
     matched.to_excel(writer, sheet_name="Matched", index=False)
     unmatched.to_excel(writer, sheet_name="Unmatched", index=False)
-output.seek(0)
+buffer.seek(0)
 
-st.download_button(
-    label="📥 Download Excel File (Matched + Unmatched)",
-    data=output,
-    file_name="reconciliation_summary.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
+# Encode as base64 for download link
+b64 = base64.b64encode(buffer.read()).decode()
+href = f'<a href="data:application/octet-stream;base64,{b64}" download="reconciliation_summary.xlsx">📥 Click here to download Excel file</a>'
 
-# DataTables
-st.divider()
 st.subheader("✅ Matched Summary")
 st.dataframe(matched)
 
 st.subheader("⚠️ Unmatched Summary")
 st.dataframe(unmatched)
+
+# Show HTML download link
+st.divider()
+st.markdown("### 📥 Export Summary File")
+st.markdown(href, unsafe_allow_html=True)
