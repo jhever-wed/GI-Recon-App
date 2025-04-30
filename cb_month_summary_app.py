@@ -13,7 +13,6 @@ def load_data(file):
     elif ext in ['xls', 'xlsx']:
         return pd.read_excel(file)
     else:
-        st.error("Unsupported file type.")
         return None
 
 st.header("📄 Upload Files")
@@ -50,17 +49,12 @@ if atlantis_file and gmi_file:
         df1['Month'] = df1['Date'].dt.to_period('M').astype(str)
         df2['Month'] = df2['Date'].dt.to_period('M').astype(str)
 
-        common_months = sorted(list(set(df1['Month'].unique()).intersection(set(df2['Month'].unique()))))
-        default_month = datetime.datetime.now().strftime("%Y-%m")
+        common_months = sorted(set(df1['Month']) & set(df2['Month']))
         selected_months = st.multiselect(
             "📅 Select Month(s) to Reconcile",
             options=common_months,
-            default=[default_month] if default_month in common_months else common_months
+            default=common_months
         )
-
-        # Fallback if none selected
-        if not selected_months:
-            selected_months = common_months
 
         df1 = df1[df1['Month'].isin(selected_months)]
         df2 = df2[df2['Month'].isin(selected_months)]
@@ -81,13 +75,6 @@ if atlantis_file and gmi_file:
         merged['Fee_Atlantis'] = merged['Fee_Atlantis'].fillna(0)
         merged['Fee_GMI'] = merged['Fee_GMI'].fillna(0)
 
-        merged = merged[
-            (merged['Qty_Atlantis'] != 0) |
-            (merged['Qty_GMI'] != 0) |
-            (merged['Fee_Atlantis'] != 0) |
-            (merged['Fee_GMI'] != 0)
-        ]
-
         merged['Qty_Diff'] = merged['Qty_Atlantis'] - merged['Qty_GMI']
         merged['Fee_Diff'] = merged['Fee_Atlantis'] + merged['Fee_GMI']
 
@@ -95,53 +82,30 @@ if atlantis_file and gmi_file:
         unmatched = merged[(merged['Qty_Diff'].round(2) != 0) | (merged['Fee_Diff'].round(2) != 0)]
 
         st.divider()
-        st.header("📊 Reconciliation Summary")
-        col1, col2 = st.columns(2)
-        col1.metric("✅ Total Matched Rows", len(matched))
-        col2.metric("⚠️ Total Unmatched Rows", len(unmatched))
+        st.header("📊 Summary")
+        st.metric("✅ Total Matched Rows", len(matched))
+        st.metric("⚠️ Total Unmatched Rows", len(unmatched))
 
         st.divider()
         st.subheader("✅ Matched Summary")
-        st.dataframe(
-            matched.style.format({
-                'Qty_Atlantis': "{:,.0f}",
-                'Fee_Atlantis': "${:,.2f}",
-                'Qty_GMI': "{:,.0f}",
-                'Fee_GMI': "${:,.2f}",
-                'Qty_Diff': "{:,.0f}",
-                'Fee_Diff': "${:,.2f}",
-            })
-        )
+        st.dataframe(matched)
 
         st.divider()
         st.subheader("⚠️ Unmatched Summary")
-        st.dataframe(
-            unmatched.style.format({
-                'Qty_Atlantis': "{:,.0f}",
-                'Fee_Atlantis': "${:,.2f}",
-                'Qty_GMI': "{:,.0f}",
-                'Fee_GMI': "${:,.2f}",
-                'Qty_Diff': "{:,.0f}",
-                'Fee_Diff': "${:,.2f}",
-            })
-        )
+        st.dataframe(unmatched)
 
-        # Force export button to always render
         st.divider()
-        st.header("📥 Export Results")
+        st.subheader("📥 Download Report")
 
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
             matched.to_excel(writer, sheet_name="Matched", index=False)
             unmatched.to_excel(writer, sheet_name="Unmatched", index=False)
-        output.seek(0)
-
-        safe_name = "-".join(selected_months) if selected_months else "all"
-        export_file_name = f"reconciliation_summary_{safe_name}.xlsx"
+        buffer.seek(0)
 
         st.download_button(
-            label="📥 Download Matched & Unmatched Report",
-            data=output,
-            file_name=export_file_name,
+            label="📥 Export to Excel (Matched + Unmatched)",
+            data=buffer,
+            file_name="reconciliation_summary.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
