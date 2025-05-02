@@ -5,7 +5,7 @@ import io
 st.set_page_config(page_title="CB Summary Reconciliation", layout="wide")
 st.title("📊 CB Summary Reconciliation")
 
-# Simulated matched and unmatched data
+# Simulated matched and unmatched data for example
 matched = pd.DataFrame({
     'CB': ['101', '202'],
     'Date': ['2025-02-01', '2025-02-02'],
@@ -34,15 +34,15 @@ st.dataframe(matched)
 st.header("⚠️ Unmatched Summary")
 st.dataframe(unmatched)
 
-# Always-visible download button for Streamlit Cloud
-st.markdown("---")
-st.subheader("📥 Export Summary")
-
+# --- Export to Excel ---
 buffer = io.BytesIO()
 with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
     matched.to_excel(writer, sheet_name="Matched", index=False)
     unmatched.to_excel(writer, sheet_name="Unmatched", index=False)
 buffer.seek(0)
+
+st.markdown("---")
+st.subheader("📥 Export Matched and Unmatched")
 
 st.download_button(
     label="📥 Download Excel File (Matched + Unmatched)",
