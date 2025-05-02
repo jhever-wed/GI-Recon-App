@@ -1,52 +1,54 @@
 import streamlit as st
 import pandas as pd
 import io
-import base64
 
-st.set_page_config(page_title="GI Reconciliation App - HTML Link", layout="wide")
-st.title("📊 GI Reconciliation App (Export via HTML Link)")
+st.set_page_config(page_title="CB Month Summary", layout="wide")
 
-# Sample matched and unmatched data
+st.title("📊 CB Month Summary Reconciliation")
+
+# Placeholder data (replace with your actual logic)
 matched = pd.DataFrame({
-    'CB': ['100', '200'],
+    'CB': ['101', '202'],
     'Date': ['2025-02-01', '2025-02-02'],
-    'Qty_Atlantis': [100, 200],
-    'Fee_Atlantis': [50.25, 75.00],
-    'Qty_GMI': [100, 200],
-    'Fee_GMI': [-50.25, -75.00],
+    'Qty_Atlantis': [150, 250],
+    'Fee_Atlantis': [60.00, 90.00],
+    'Qty_GMI': [150, 250],
+    'Fee_GMI': [-60.00, -90.00],
     'Qty_Diff': [0, 0],
-    'Fee_Diff': [0.0, 0.0]
+    'Fee_Diff': [0.00, 0.00]
 })
 
 unmatched = pd.DataFrame({
-    'CB': ['300'],
+    'CB': ['303'],
     'Date': ['2025-02-03'],
-    'Qty_Atlantis': [150],
-    'Fee_Atlantis': [60.00],
+    'Qty_Atlantis': [180],
+    'Fee_Atlantis': [85.00],
     'Qty_GMI': [100],
-    'Fee_GMI': [-30.00],
-    'Qty_Diff': [50],
-    'Fee_Diff': [30.00]
+    'Fee_GMI': [-40.00],
+    'Qty_Diff': [80],
+    'Fee_Diff': [45.00]
 })
 
-# Create Excel in memory
+# Display tables
+st.header("✅ Matched Summary")
+st.dataframe(matched)
+
+st.header("⚠️ Unmatched Summary")
+st.dataframe(unmatched)
+
+# Add download button using BytesIO + Excel writer
+st.divider()
+st.subheader("📥 Export Matched and Unmatched")
+
 buffer = io.BytesIO()
 with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
     matched.to_excel(writer, sheet_name="Matched", index=False)
     unmatched.to_excel(writer, sheet_name="Unmatched", index=False)
 buffer.seek(0)
 
-# Encode as base64 for download link
-b64 = base64.b64encode(buffer.read()).decode()
-href = f'<a href="data:application/octet-stream;base64,{b64}" download="reconciliation_summary.xlsx">📥 Click here to download Excel file</a>'
-
-st.subheader("✅ Matched Summary")
-st.dataframe(matched)
-
-st.subheader("⚠️ Unmatched Summary")
-st.dataframe(unmatched)
-
-# Show HTML download link
-st.divider()
-st.markdown("### 📥 Export Summary File")
-st.markdown(href, unsafe_allow_html=True)
+st.download_button(
+    label="📥 Download Excel File",
+    data=buffer,
+    file_name="cb_summary_export.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
