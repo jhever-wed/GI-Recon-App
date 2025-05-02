@@ -2,11 +2,14 @@ import streamlit as st
 import pandas as pd
 import io
 
-st.set_page_config(page_title="CB Month Summary", layout="wide")
+st.set_page_config(page_title="CB Summary Export", layout="wide")
+st.title("📊 CB Summary Reconciliation with Export")
 
-st.title("📊 CB Month Summary Reconciliation")
+# Simulate user's expected structure and style
+st.sidebar.header("Filters")
+selected_months = st.sidebar.multiselect("Select Month", ["2025-02"], default=["2025-02"])
 
-# Placeholder data (replace with your actual logic)
+# Dummy data consistent with user's style
 matched = pd.DataFrame({
     'CB': ['101', '202'],
     'Date': ['2025-02-01', '2025-02-02'],
@@ -29,16 +32,15 @@ unmatched = pd.DataFrame({
     'Fee_Diff': [45.00]
 })
 
-# Display tables
-st.header("✅ Matched Summary")
+st.subheader("✅ Matched Summary")
 st.dataframe(matched)
 
-st.header("⚠️ Unmatched Summary")
+st.subheader("⚠️ Unmatched Summary")
 st.dataframe(unmatched)
 
-# Add download button using BytesIO + Excel writer
-st.divider()
-st.subheader("📥 Export Matched and Unmatched")
+# Export Button placed according to user's prior working layout
+st.markdown("---")
+st.subheader("📥 Export Summary")
 
 buffer = io.BytesIO()
 with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
@@ -47,7 +49,7 @@ with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
 buffer.seek(0)
 
 st.download_button(
-    label="📥 Download Excel File",
+    label="📥 Download Reconciliation Excel",
     data=buffer,
     file_name="cb_summary_export.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
