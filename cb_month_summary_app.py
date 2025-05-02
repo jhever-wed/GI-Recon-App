@@ -2,14 +2,10 @@ import streamlit as st
 import pandas as pd
 import io
 
-st.set_page_config(page_title="CB Summary Export", layout="wide")
-st.title("📊 CB Summary Reconciliation with Export")
+st.set_page_config(page_title="CB Summary Reconciliation", layout="wide")
+st.title("📊 CB Summary Reconciliation")
 
-# Simulate user's expected structure and style
-st.sidebar.header("Filters")
-selected_months = st.sidebar.multiselect("Select Month", ["2025-02"], default=["2025-02"])
-
-# Dummy data consistent with user's style
+# Simulated matched and unmatched data
 matched = pd.DataFrame({
     'CB': ['101', '202'],
     'Date': ['2025-02-01', '2025-02-02'],
@@ -32,13 +28,13 @@ unmatched = pd.DataFrame({
     'Fee_Diff': [45.00]
 })
 
-st.subheader("✅ Matched Summary")
+st.header("✅ Matched Summary")
 st.dataframe(matched)
 
-st.subheader("⚠️ Unmatched Summary")
+st.header("⚠️ Unmatched Summary")
 st.dataframe(unmatched)
 
-# Export Button placed according to user's prior working layout
+# Always-visible download button for Streamlit Cloud
 st.markdown("---")
 st.subheader("📥 Export Summary")
 
@@ -49,7 +45,7 @@ with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
 buffer.seek(0)
 
 st.download_button(
-    label="📥 Download Reconciliation Excel",
+    label="📥 Download Excel File (Matched + Unmatched)",
     data=buffer,
     file_name="cb_summary_export.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
