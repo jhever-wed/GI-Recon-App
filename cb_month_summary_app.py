@@ -1,9 +1,8 @@
+
 import streamlit as st
 import pandas as pd
-import io
 
-st.set_page_config(page_title="GI Reconciliation App", layout="wide")
-st.title("📊 GI Reconciliation - 4-Way Summary Split")
+st.set_page_config(layout="wide")
 
 def load_data(file):
     ext = file.name.split('.')[-1]
@@ -15,87 +14,60 @@ def load_data(file):
         st.error("Unsupported file type.")
         return None
 
-st.sidebar.header("📄 Upload Files")
-atlantis_file = st.sidebar.file_uploader("Upload Atlantis File", type=["csv", "xls", "xlsx"])
-gmi_file = st.sidebar.file_uploader("Upload GMI File", type=["csv", "xls", "xlsx"])
+st.title("GI Reconciliation App (CB + Date + Account Match)")
+
+atlantis_file = st.file_uploader("Upload Atlantis File", type=["csv", "xls", "xlsx"])
+gmi_file = st.file_uploader("Upload GMI File", type=["csv", "xls", "xlsx"])
 
 if atlantis_file and gmi_file:
     df1 = load_data(atlantis_file)
     df2 = load_data(gmi_file)
 
     if df1 is not None and df2 is not None:
-    df1 = df1[df1['RecordType'] == 'TP']
+        df1 = df1[df1['RecordType'] == 'TP']
+        df1 = df1.rename(columns={'ExchangeEBCode': 'CB', 'TradeDate': 'Date', 'GiveUpAmt': 'Fee', 'ClearingAccount': 'Account'})
+        df2 = df2.rename(columns={'TGIVIF#': 'CB', 'TEDATE': 'Date', 'TFEE5': 'Fee', 'TQTY': 'Qty', 'Acct': 'Account'})
 
-    df1 = df1.rename(columns={
-    'ExchangeEBCode': 'CB',
-    'TradeDate': 'Date',
-    'Quantity': 'Qty',
-    'GiveUpAmt': 'Fee'
-    })
+        df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
+        df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
 
-    df2 = df2.rename(columns={
-    'TGIVF#': 'CB',
-    'TEDATE': 'Date',
-    'TQTY': 'Qty',
-    'TFEE5': 'Fee'
-    })
+        summary1 = df1.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
+        summary2 = df2.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
 
-    df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
-    df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
+        summary1 = summary1.rename(columns={'Qty': 'Qty_Atlantis', 'Fee': 'Fee_Atlantis'})
+        summary2 = summary2.rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI'})
 
-    df1 = df1.rename(columns={'ClearingAccount': 'Account'})
-    df2 = df2.rename(columns={'Acct': 'Account'})
-    summary1 = df1.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
-    summary2 = df2.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
+        matched = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account'], how='inner')
+        matched['Qty_Diff'] = matched['Qty_Atlantis'] - matched['Qty_GMI']
+        matched['Fee_Diff'] = matched['Fee_Atlantis'] + matched['Fee_GMI']
 
-    summary1['CB'] = summary1['CB'].astype(str).str.strip()
-    summary2['CB'] = summary2['CB'].astype(str).str.strip()
+        left_only = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account'], how='left', indicator=True)
+        atlantis_unmatched = left_only[left_only['_merge'] == 'left_only'].drop(columns=['_merge'])
 
-    summary1 = summary1.rename(columns={'Qty': 'Qty_Atlantis', 'Fee': 'Fee_Atlantis'})
-    summary2 = summary2.rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI'})
+        right_only = pd.merge(summary2, summary1, on=['CB', 'Date', 'Account'], how='left', indicator=True)
+        gmi_unmatched = right_only[right_only['_merge'] == 'left_only'].drop(columns=['_merge'])
 
-    merged = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account'], how='outer')
+        final_exceptions = pd.concat([atlantis_unmatched, gmi_unmatched], ignore_index=True)
 
-    for col in ['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']:
-    merged[col] = merged[col].fillna(0)
+        st.subheader("Matched Summary")
+        st.dataframe(matched)
 
-    merged['Qty_Diff'] = merged['Qty_Atlantis'] - merged['Qty_GMI']
-    merged['Fee_Diff'] = merged['Fee_Atlantis'] + merged['Fee_GMI']
+        st.subheader("Atlantis Unmatched")
+        st.dataframe(atlantis_unmatched)
 
-    matched = merged[(merged['Qty_Diff'].round(2) == 0) & (merged['Fee_Diff'].round(2) == 0)]
-    qty_match_only = merged[(merged['Qty_Diff'].round(2) == 0) & (merged['Fee_Diff'].round(2) != 0)]
-    fee_match_only = merged[(merged['Qty_Diff'].round(2) != 0) & (merged['Fee_Diff'].round(2) == 0)]
-    no_match = merged[(merged['Qty_Diff'].round(2) != 0) & (merged['Fee_Diff'].round(2) != 0)]
+        st.subheader("GMI Unmatched")
+        st.dataframe(gmi_unmatched)
 
-    st.success("✅ Reconciliation Completed!")
+        st.subheader("Final Exceptions")
+        st.dataframe(final_exceptions)
 
-    st.header("✅ Full Matches (Qty + Fee)")
-    st.dataframe(matched)
+        # Excel export
+        output_file = "gi_recon_output.xlsx"
+        with pd.ExcelWriter(output_file, engine='xlsxwriter') as writer:
+            matched.to_excel(writer, sheet_name='Matched', index=False)
+            atlantis_unmatched.to_excel(writer, sheet_name='Atlantis_Unmatched', index=False)
+            gmi_unmatched.to_excel(writer, sheet_name='GMI_Unmatched', index=False)
+            final_exceptions.to_excel(writer, sheet_name='Final_Exceptions', index=False)
 
-    st.header("🔍 Qty Match Only (Fee mismatch)")
-    st.dataframe(qty_match_only)
-
-    st.header("🔍 Fee Match Only (Qty mismatch)")
-    st.dataframe(fee_match_only)
-
-    st.header("⚠️ No Match (Qty + Fee mismatch)")
-    st.dataframe(no_match)
-
-    # Export logic
-    st.markdown("---")
-    st.subheader("📥 Export All Sections to Excel")
-
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
-    matched.to_excel(writer, sheet_name="Matched", index=False)
-    qty_match_only.to_excel(writer, sheet_name="Qty_Match_Only", index=False)
-    fee_match_only.to_excel(writer, sheet_name="Fee_Match_Only", index=False)
-    no_match.to_excel(writer, sheet_name="No_Match", index=False)
-    buffer.seek(0)
-
-    st.download_button(
-    label="📥 Download Excel File (All 4 Sections)",
-    data=buffer,
-    file_name="reconciliation_summary.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+        with open(output_file, 'rb') as f:
+            st.download_button("Download Results as Excel", f, file_name=output_file)
