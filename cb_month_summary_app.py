@@ -52,9 +52,6 @@ if atlantis_file and gmi_file:
         summary1 = summary1.rename(columns={'Qty': 'Qty_Atlantis', 'Fee': 'Fee_Atlantis'})
         summary2 = summary2.rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI'})
 
-        st.write("Summary1 columns:", summary1.columns.tolist())
-        st.write("Summary2 columns:", summary2.columns.tolist())
-
         merged = pd.merge(summary1, summary2, on=['CB', 'Date'], how='outer')
 
         for col in ['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']:
