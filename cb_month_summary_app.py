@@ -1,2 +1,3 @@
-# Sample main app script
+# Final working version of GI Recon App
+
 print('App loaded')
