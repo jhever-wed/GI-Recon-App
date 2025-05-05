@@ -27,7 +27,7 @@ if atlantis_file and gmi_file:
         df1 = df1[df1['RecordType'] == 'TP']
     df1 = df1.rename(columns={'ClearingAccount': 'Account'})
 
-        df1 = df1.rename(columns={
+    df1 = df1.rename(columns={
             'ExchangeEBCode': 'CB',
             'TradeDate': 'Date',
             'Quantity': 'Qty',
