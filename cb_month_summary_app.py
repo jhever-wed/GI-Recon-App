@@ -27,17 +27,17 @@ if atlantis_file and gmi_file:
     df1 = df1[df1['RecordType'] == 'TP']
 
     df1 = df1.rename(columns={
-        'ExchangeEBCode': 'CB',
-        'TradeDate': 'Date',
-        'Quantity': 'Qty',
-        'GiveUpAmt': 'Fee'
+    'ExchangeEBCode': 'CB',
+    'TradeDate': 'Date',
+    'Quantity': 'Qty',
+    'GiveUpAmt': 'Fee'
     })
 
     df2 = df2.rename(columns={
-        'TGIVF#': 'CB',
-        'TEDATE': 'Date',
-        'TQTY': 'Qty',
-        'TFEE5': 'Fee'
+    'TGIVF#': 'CB',
+    'TEDATE': 'Date',
+    'TQTY': 'Qty',
+    'TFEE5': 'Fee'
     })
 
     df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
@@ -57,7 +57,7 @@ if atlantis_file and gmi_file:
     merged = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account'], how='outer')
 
     for col in ['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']:
-        merged[col] = merged[col].fillna(0)
+    merged[col] = merged[col].fillna(0)
 
     merged['Qty_Diff'] = merged['Qty_Atlantis'] - merged['Qty_GMI']
     merged['Fee_Diff'] = merged['Fee_Atlantis'] + merged['Fee_GMI']
@@ -87,15 +87,15 @@ if atlantis_file and gmi_file:
 
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
-        matched.to_excel(writer, sheet_name="Matched", index=False)
-        qty_match_only.to_excel(writer, sheet_name="Qty_Match_Only", index=False)
-        fee_match_only.to_excel(writer, sheet_name="Fee_Match_Only", index=False)
-        no_match.to_excel(writer, sheet_name="No_Match", index=False)
+    matched.to_excel(writer, sheet_name="Matched", index=False)
+    qty_match_only.to_excel(writer, sheet_name="Qty_Match_Only", index=False)
+    fee_match_only.to_excel(writer, sheet_name="Fee_Match_Only", index=False)
+    no_match.to_excel(writer, sheet_name="No_Match", index=False)
     buffer.seek(0)
 
     st.download_button(
-        label="📥 Download Excel File (All 4 Sections)",
-        data=buffer,
-        file_name="reconciliation_summary.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    label="📥 Download Excel File (All 4 Sections)",
+    data=buffer,
+    file_name="reconciliation_summary.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
