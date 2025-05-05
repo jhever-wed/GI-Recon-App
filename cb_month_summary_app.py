@@ -26,11 +26,23 @@ if atlantis_file and gmi_file:
     if df1 is not None and df2 is not None:
         df1 = df1[df1['RecordType'] == 'TP']
         df1.columns = df1.columns.str.strip()
-        rename_map1 = {'ExchangeEBCode': 'CB', 'TradeDate': 'Date', 'GiveUpAmt': 'Fee', 'ClearingAccount': 'Account', 'Quantity': 'Qty'}
-        df1 = df1.rename(columns={k: v for k, v in rename_map1.items() if k in df1.columns})'ExchangeEBCode': 'CB', 'TradeDate': 'Date', 'GiveUpAmt': 'Fee', 'ClearingAccount': 'Account', 'Quantity': 'Qty'})
+        rename_map1 = {
+            'ExchangeEBCode': 'CB',
+            'TradeDate': 'Date',
+            'GiveUpAmt': 'Fee',
+            'ClearingAccount': 'Account',
+            'Quantity': 'Qty'
+        }
+        df1 = df1.rename(columns={k: v for k, v in rename_map1.items() if k in df1.columns})
         df2.columns = df2.columns.str.strip()
-        rename_map2 = {'TGIVIF#': 'CB', 'TEDATE': 'Date', 'TFEE5': 'Fee', 'TQTY': 'Qty', 'Acct': 'Account'}
-        df2 = df2.rename(columns={k: v for k, v in rename_map2.items() if k in df2.columns})'TGIVIF#': 'CB', 'TEDATE': 'Date', 'TFEE5': 'Fee', 'TQTY': 'Qty', 'Acct': 'Account'})
+        rename_map2 = {
+            'TGIVIF#': 'CB',
+            'TEDATE': 'Date',
+            'TFEE5': 'Fee',
+            'TQTY': 'Qty',
+            'Acct': 'Account'
+        }
+        df2 = df2.rename(columns={k: v for k, v in rename_map2.items() if k in df2.columns})
 
         df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
         df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
