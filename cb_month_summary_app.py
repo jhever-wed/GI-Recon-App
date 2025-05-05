@@ -25,7 +25,9 @@ if atlantis_file and gmi_file:
 
     if df1 is not None and df2 is not None:
         df1 = df1[df1['RecordType'] == 'TP']
+        df1.columns = df1.columns.str.strip()
         df1 = df1.rename(columns={'ExchangeEBCode': 'CB', 'TradeDate': 'Date', 'GiveUpAmt': 'Fee', 'ClearingAccount': 'Account', 'Quantity': 'Qty'})
+        df2.columns = df2.columns.str.strip()
         df2 = df2.rename(columns={'TGIVIF#': 'CB', 'TEDATE': 'Date', 'TFEE5': 'Fee', 'TQTY': 'Qty', 'Acct': 'Account'})
 
         df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
