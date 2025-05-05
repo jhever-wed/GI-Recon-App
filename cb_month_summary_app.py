@@ -20,16 +20,13 @@ atlantis_file = st.sidebar.file_uploader("Upload Atlantis File", type=["csv", "x
 gmi_file = st.sidebar.file_uploader("Upload GMI File", type=["csv", "xls", "xlsx"])
 
 if atlantis_file and gmi_file:
-    st.info('Loading Atlantis file...')
     df1 = load_data(atlantis_file)
-    st.info('Loading GMI file...')
     df2 = load_data(gmi_file)
 
     if df1 is not None and df2 is not None:
-        st.info('Filtering Atlantis to RecordType == TP')
         df1 = df1[df1['RecordType'] == 'TP']
+    df1 = df1.rename(columns={'ClearingAccount': 'Account'})
 
-        st.info('Renaming Atlantis columns...')
         df1 = df1.rename(columns={
             'ExchangeEBCode': 'CB',
             'TradeDate': 'Date',
@@ -37,7 +34,6 @@ if atlantis_file and gmi_file:
             'GiveUpAmt': 'Fee'
         })
 
-        st.info('Renaming GMI columns...')
         df2 = df2.rename(columns={
             'TGIVF#': 'CB',
             'TEDATE': 'Date',
@@ -45,14 +41,10 @@ if atlantis_file and gmi_file:
             'TFEE5': 'Fee'
         })
 
-        st.info('Converting Atlantis TradeDate to datetime')
         df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
-        st.info('Converting GMI TEDATE to datetime')
         df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
 
-        st.info('Grouping Atlantis data...')
         summary1 = df1.groupby(['CB', 'Date'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
-        st.info('Grouping GMI data...')
         summary2 = df2.groupby(['CB', 'Date'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
 
         summary1['CB'] = summary1['CB'].astype(str).str.strip()
@@ -61,7 +53,6 @@ if atlantis_file and gmi_file:
         summary1 = summary1.rename(columns={'Qty': 'Qty_Atlantis', 'Fee': 'Fee_Atlantis'})
         summary2 = summary2.rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI'})
 
-        st.info('Merging summaries...')
         merged = pd.merge(summary1, summary2, on=['CB', 'Date'], how='outer')
 
         for col in ['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']:
