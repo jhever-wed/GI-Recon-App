@@ -21,7 +21,9 @@ gmi_file = st.file_uploader("Upload GMI File", type=["csv", "xls", "xlsx"])
 
 if atlantis_file and gmi_file:
     df1 = load_data(atlantis_file)
+        st.write('Atlantis columns:', df1.columns.tolist())
     df2 = load_data(gmi_file)
+        st.write('GMI columns:', df2.columns.tolist())
 
     if df1 is not None and df2 is not None:
         df1 = df1[df1['RecordType'] == 'TP']
