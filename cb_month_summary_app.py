@@ -43,8 +43,8 @@ if atlantis_file and gmi_file:
         df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
         df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
 
-        summary1 = df1.groupby(['CB', 'Date'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
-        summary2 = df2.groupby(['CB', 'Date'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
+        summary1 = df1.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
+        summary2 = df2.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
 
         summary1['CB'] = summary1['CB'].astype(str).str.strip()
         summary2['CB'] = summary2['CB'].astype(str).str.strip()
@@ -52,7 +52,7 @@ if atlantis_file and gmi_file:
         summary1 = summary1.rename(columns={'Qty': 'Qty_Atlantis', 'Fee': 'Fee_Atlantis'})
         summary2 = summary2.rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI'})
 
-        merged = pd.merge(summary1, summary2, on=['CB', 'Date'], how='outer')
+        merged = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account'], how='outer')
 
         for col in ['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']:
             merged[col] = merged[col].fillna(0)
