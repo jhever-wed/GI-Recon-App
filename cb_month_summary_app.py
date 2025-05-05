@@ -43,6 +43,8 @@ if atlantis_file and gmi_file:
         df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
         df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
 
+    df1 = df1.rename(columns={'ClearingAccount': 'Account'})
+    df2 = df2.rename(columns={'Acct': 'Account'})
         summary1 = df1.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
         summary2 = df2.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
 
