@@ -130,7 +130,18 @@ if atlantis_file and gmi_file:
             st.dataframe(no_match)
 
             st.markdown("---")
-            st.subheader("📥 Export All Sections to Excel")
+            
+            # ----- Rate Comparison -----
+            rate_avg = df1.groupby(['CB', 'Date', 'Account'], dropna=False)['Rate'].mean().reset_index()
+            rate_comparison = merged.merge(rate_avg, on=['CB', 'Date', 'Account'], how='left', suffixes=('', '_AtlantisMean'))
+            rate_comparison['Rate_Atlantis'] = rate_comparison['Rate'].fillna(0)
+            rate_comparison['Rate_GMI'] = rate_comparison.apply(lambda row: (row['Fee_GMI'] / row['Qty_GMI']) if row['Qty_GMI'] != 0 else 0, axis=1)
+            rate_comparison['Rate_Diff'] = rate_comparison['Rate_Atlantis'] - rate_comparison['Rate_GMI']
+            st.header("📈 Rate Comparison by Account")
+            st.dataframe(rate_comparison[['CB', 'Date', 'Account', 'Rate_Atlantis', 'Rate_GMI', 'Rate_Diff']])
+
+
+st.subheader("📥 Export All Sections to Excel")
 
             buffer = io.BytesIO()
             with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
@@ -138,6 +149,9 @@ if atlantis_file and gmi_file:
                 qty_match_only.to_excel(writer, sheet_name="Qty_Match_Only", index=False)
                 fee_match_only.to_excel(writer, sheet_name="Fee_Match_Only", index=False)
                 no_match.to_excel(writer, sheet_name="No_Match", index=False)
+
+                rate_comparison[['CB', 'Date', 'Account', 'Rate_Atlantis', 'Rate_GMI', 'Rate_Diff']].to_excel(writer, sheet_name="Rate_Comparison", index=False)
+
             buffer.seek(0)
 
             st.download_button(
