@@ -141,7 +141,25 @@ if atlantis_file and gmi_file:
             st.dataframe(rate_comparison[['CB', 'Date', 'Account', 'Rate_Atlantis', 'Rate_GMI', 'Rate_Diff']])
 
 
-    st.subheader("📥 Export All Sections to Excel")
+    
+            st.subheader("📥 Export All Sections to Excel")
+
+            buffer = io.BytesIO()
+            with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+                matched.to_excel(writer, sheet_name="Matched", index=False)
+                qty_match_only.to_excel(writer, sheet_name="Qty_Match_Only", index=False)
+                fee_match_only.to_excel(writer, sheet_name="Fee_Match_Only", index=False)
+                no_match.to_excel(writer, sheet_name="No_Match", index=False)
+                rate_comparison[['CB', 'Date', 'Account', 'Rate_Atlantis', 'Rate_GMI', 'Rate_Diff']].to_excel(writer, sheet_name="Rate_Comparison", index=False)
+            buffer.seek(0)
+
+            st.download_button(
+                label="📥 Download Excel File (All 5 Sections)",
+                data=buffer,
+                file_name="reconciliation_summary.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
 
             buffer = io.BytesIO()
             with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
