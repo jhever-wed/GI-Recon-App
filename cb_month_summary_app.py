@@ -8,7 +8,7 @@ st.title("📊 GI Reconciliation - 4-Way Summary Split")
 def load_data(file):
     ext = file.name.split('.')[-1]
     if ext == 'csv':
-        return pd.read_csv(file)
+        return pd.read_csv(file, low_memory=False)
     elif ext in ['xls', 'xlsx']:
         return pd.read_excel(file)
     else:
@@ -43,7 +43,11 @@ if atlantis_file and gmi_file:
         })
 
         df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
+        df1['Qty'] = pd.to_numeric(df1['Qty'], errors='coerce')
+        df1['Fee'] = pd.to_numeric(df1['Fee'], errors='coerce')
         df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
+        df2['Qty'] = pd.to_numeric(df2['Qty'], errors='coerce')
+        df2['Fee'] = pd.to_numeric(df2['Fee'], errors='coerce')
 
         required_df1_cols = ['CB', 'Date', 'Qty', 'Fee', 'Account']
         required_df2_cols = ['CB', 'Date', 'Qty', 'Fee', 'Account']
