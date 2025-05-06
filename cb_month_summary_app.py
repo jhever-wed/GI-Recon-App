@@ -1,70 +1,70 @@
 
 import streamlit as st
 import pandas as pd
-import io
 
-st.set_page_config(layout="wide")
-st.title("GI Reconciliation App with Account Field")
+st.title("GI Reconciliation App")
 
-def load_data(file):
-    ext = file.name.split(".")[-1].lower()
-    if ext == "csv":
-        df = pd.read_csv(file, dtype=str)
-    elif ext in ["xls", "xlsx"]:
-        df = pd.read_excel(file, dtype=str)
-    else:
-        st.error("Unsupported file type.")
-        return None
-    df.columns = df.columns.str.strip()
+def load_file(label):
+    uploaded_file = st.file_uploader(f"Upload {label} File", type=["csv", "xls", "xlsx"])
+    if uploaded_file is not None:
+        ext = uploaded_file.name.split(".")[-1]
+        if ext == "csv":
+            return pd.read_csv(uploaded_file)
+        else:
+            return pd.read_excel(uploaded_file)
+    return None
+
+def preprocess_atlantis(df):
+    df = df[df["RecordType"] == "TP"]
+    df = df.rename(columns={
+        "ExchangeCBCode": "CB",
+        "TradeDate": "Date",
+        "Quantity": "Qty",
+        "GiveUpAmt": "Fee",
+        "ClearingAccount": "Account"
+    })
+    df = df[["CB", "Date", "Qty", "Fee", "Account"]].dropna()
+    df["Date"] = pd.to_datetime(df["Date"]).dt.date
     return df
 
-atlantis_file = st.file_uploader("Upload Atlantis File", type=["csv", "xls", "xlsx"])
-gmi_file = st.file_uploader("Upload GMI File", type=["csv", "xls", "xlsx"])
+def preprocess_gmi(df):
+    df = df.rename(columns={
+        "TGIVF#": "CB",
+        "TEDATE": "Date",
+        "TQTY": "Qty",
+        "TFEE5": "Fee",
+        "Acct": "Account"
+    })
+    df = df[["CB", "Date", "Qty", "Fee", "Account"]].dropna()
+    df["Date"] = pd.to_datetime(df["Date"]).dt.date
+    return df
 
-if atlantis_file and gmi_file:
-    df1 = load_data(atlantis_file)
-    df2 = load_data(gmi_file)
-    
-    if df1 is not None and df2 is not None:
-        st.success("Files successfully loaded.")
-        
-        # Normalize and rename columns
-        df1 = df1.rename(columns={
-            "ExchangeEBCode": "cb",
-            "TradeDate": "date",
-            "Quantity": "qty",
-            "GiveUpAmt": "fee",
-            "ClearingAccount": "account"
-        })
-        df2 = df2.rename(columns={
-            "TGIVIF#": "cb",
-            "TEDATE": "date",
-            "TQTY": "qty",
-            "TFEE5": "fee",
-            "Acct": "account"
-        })
+atlantis_df = load_file("Atlantis")
+gmi_df = load_file("GMI")
 
-        df1 = df1[["cb", "date", "qty", "fee", "account"]].dropna()
-        df2 = df2[["cb", "date", "qty", "fee", "account"]].dropna()
+if atlantis_df is not None and gmi_df is not None:
+    try:
+        st.subheader("Preprocessing Data...")
+        atlantis_clean = preprocess_atlantis(atlantis_df)
+        gmi_clean = preprocess_gmi(gmi_df)
+        st.success("Data successfully loaded and cleaned.")
 
-        df1["date"] = pd.to_datetime(df1["date"]).dt.date
-        df2["date"] = pd.to_datetime(df2["date"]).dt.date
+        st.subheader("Sample: Atlantis")
+        st.write(atlantis_clean.head())
 
-        df1[["qty", "fee"]] = df1[["qty", "fee"]].apply(pd.to_numeric, errors="coerce").fillna(0)
-        df2[["qty", "fee"]] = df2[["qty", "fee"]].apply(pd.to_numeric, errors="coerce").fillna(0)
+        st.subheader("Sample: GMI")
+        st.write(gmi_clean.head())
 
-        summary1 = df1.groupby(["cb", "date", "account"]).agg({"qty": "sum", "fee": "sum"}).reset_index()
-        summary2 = df2.groupby(["cb", "date", "account"]).agg({"qty": "sum", "fee": "sum"}).reset_index()
+        st.subheader("Reconciling...")
+        grouped_atlantis = atlantis_clean.groupby(["CB", "Date", "Account"]).agg({"Qty": "sum", "Fee": "sum"}).reset_index()
+        grouped_gmi = gmi_clean.groupby(["CB", "Date", "Account"]).agg({"Qty": "sum", "Fee": "sum"}).reset_index()
 
-        merged = pd.merge(summary1, summary2, on=["cb", "date", "account"], how="outer", suffixes=("_atlantis", "_gmi"))
-        merged.fillna(0, inplace=True)
-        merged["qty_diff"] = merged["qty_atlantis"] - merged["qty_gmi"]
-        merged["fee_diff"] = merged["fee_atlantis"] + merged["fee_gmi"]
+        final_df = pd.merge(grouped_atlantis, grouped_gmi, on=["CB", "Date", "Account"], how="outer", suffixes=("_Atlantis", "_GMI"))
+        final_df["Qty_Diff"] = final_df["Qty_Atlantis"].fillna(0) - final_df["Qty_GMI"].fillna(0)
+        final_df["Fee_Diff"] = final_df["Fee_Atlantis"].fillna(0) + final_df["Fee_GMI"].fillna(0)
 
-        st.dataframe(merged)
+        st.subheader("Reconciliation Result")
+        st.dataframe(final_df)
 
-        # Export button
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-            merged.to_excel(writer, index=False, sheet_name="Reconciliation")
-        st.download_button("📥 Download Excel", output.getvalue(), file_name="gi_reconciliation_output.xlsx")
+    except Exception as e:
+        st.error(f"Processing Error: {e}")
