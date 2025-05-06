@@ -15,36 +15,48 @@ def load_data(file):
         st.error("Unsupported file type.")
         return None
 
-    st.sidebar.header("📄 Upload Files")
-    atlantis_file = st.sidebar.file_uploader("Upload Atlantis File", type=["csv", "xls", "xlsx"])
-    gmi_file = st.sidebar.file_uploader("Upload GMI File", type=["csv", "xls", "xlsx"])
+st.sidebar.header("📄 Upload Files")
+atlantis_file = st.sidebar.file_uploader("Upload Atlantis File", type=["csv", "xls", "xlsx"])
+gmi_file = st.sidebar.file_uploader("Upload GMI File", type=["csv", "xls", "xlsx"])
 
-    if atlantis_file and gmi_file:
-        df1 = load_data(atlantis_file)
-        df2 = load_data(gmi_file)
+if atlantis_file and gmi_file:
+    df1 = load_data(atlantis_file)
+    df2 = load_data(gmi_file)
 
-        if df1 is not None and df2 is not None:
-            df1 = df1[df1['RecordType'] == 'TP']
+    if df1 is not None and df2 is not None:
+        df1 = df1[df1['RecordType'] == 'TP']
 
-            df1 = df1.rename(columns={
-                'ExchangeEBCode': 'CB', 'ClearingAccount': 'Account',
-                'TradeDate': 'Date',
-                'Quantity': 'Qty',
-                'GiveUpAmt': 'Fee'
-            })
+        df1 = df1.rename(columns={
+            'ExchangeEBCode': 'CB',
+            'TradeDate': 'Date',
+            'Quantity': 'Qty',
+            'GiveUpAmt': 'Fee',
+            'ClearingAccount': 'Account'
+        })
 
-            df2 = df2.rename(columns={
-                'TGIVF#': 'CB', 'Acct': 'Account',
-                'TEDATE': 'Date',
-                'TQTY': 'Qty',
-                'TFEE5': 'Fee'
-            })
+        df2 = df2.rename(columns={
+            'TGIVF#': 'CB',
+            'TEDATE': 'Date',
+            'TQTY': 'Qty',
+            'TFEE5': 'Fee',
+            'Acct': 'Account'
+        })
 
-            df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
-            df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
+        df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
+        df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
 
-                summary1 = df1.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
-                summary2 = df2.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
+        required_df1_cols = ['CB', 'Date', 'Qty', 'Fee', 'Account']
+        required_df2_cols = ['CB', 'Date', 'Qty', 'Fee', 'Account']
+        missing1 = [col for col in required_df1_cols if col not in df1.columns]
+        missing2 = [col for col in required_df2_cols if col not in df2.columns]
+
+        if missing1:
+            st.error(f"❌ Missing columns in Atlantis file: {missing1}")
+        elif missing2:
+            st.error(f"❌ Missing columns in GMI file: {missing2}")
+        else:
+            summary1 = df1.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
+            summary2 = df2.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
 
             summary1['CB'] = summary1['CB'].astype(str).str.strip()
             summary2['CB'] = summary2['CB'].astype(str).str.strip()
@@ -79,7 +91,6 @@ def load_data(file):
             st.header("⚠️ No Match (Qty + Fee mismatch)")
             st.dataframe(no_match)
 
-            # Export logic
             st.markdown("---")
             st.subheader("📥 Export All Sections to Excel")
 
