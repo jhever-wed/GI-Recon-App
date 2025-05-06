@@ -3,10 +3,11 @@ import streamlit as st
 import pandas as pd
 import io
 
+st.set_page_config(layout="wide")
 st.title("GI Reconciliation App")
 
 def load_data(file):
-    ext = file.name.split('.')[-1].lower()
+    ext = file.name.split('.')[-1]
     if ext == 'csv':
         return pd.read_csv(file)
     elif ext in ['xls', 'xlsx']:
@@ -15,29 +16,34 @@ def load_data(file):
         st.error("Unsupported file type.")
         return None
 
-atlantis_file = st.file_uploader("Upload Atlantis File (CSV or Excel)", type=['csv', 'xls', 'xlsx'])
-gmi_file = st.file_uploader("Upload GMI File (CSV or Excel)", type=['csv', 'xls', 'xlsx'])
+st.info("Upload Atlantis (CSV) and GMI (Excel) files")
+
+atlantis_file = st.file_uploader("Upload Atlantis File", type=["csv"], key="atlantis")
+gmi_file = st.file_uploader("Upload GMI File", type=["xls", "xlsx"], key="gmi")
 
 if atlantis_file and gmi_file:
+    st.success("Files uploaded. Processing...")
+
     df1 = load_data(atlantis_file)
     df2 = load_data(gmi_file)
 
     if df1 is not None and df2 is not None:
         df1 = df1[df1['RecordType'] == 'TP']
-        
+
         df1 = df1.rename(columns={
             "ExchangeEBCode": "CB",
             "TradeDate": "Date",
+            "ClearingAccount": "Account",
             "Quantity": "Qty",
             "GiveUpAmt": "Fee",
-            "ClearingAccount": "Account"
         })
+
         df2 = df2.rename(columns={
             "TGIVIF#": "CB",
             "TEDATE": "Date",
+            "Acct": "Account",
             "TQTY": "Qty",
             "TFEE5": "Fee",
-            "Acct": "Account"
         })
 
         df1["Date"] = pd.to_datetime(df1["Date"]).dt.date
@@ -51,15 +57,15 @@ if atlantis_file and gmi_file:
 
         merged = pd.merge(summary1, summary2, on=["CB", "Date", "Account"], how="outer")
 
-        for col in ['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']:
+        for col in ["Qty_Atlantis", "Fee_Atlantis", "Qty_GMI", "Fee_GMI"]:
             merged[col] = merged[col].fillna(0)
 
         merged["Qty_Diff"] = merged["Qty_Atlantis"] - merged["Qty_GMI"]
         merged["Fee_Diff"] = merged["Fee_Atlantis"] + merged["Fee_GMI"]
 
-        st.write("Reconciliation Summary", merged)
+        st.dataframe(merged)
 
         buffer = io.BytesIO()
         with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
-            merged.to_excel(writer, sheet_name="Reconciliation", index=False)
-        st.download_button("Download Excel", buffer.getvalue(), file_name="reconciliation_output.xlsx")
+            merged.to_excel(writer, index=False, sheet_name="Reconciliation")
+        st.download_button("Download Reconciliation Report", buffer.getvalue(), file_name="reconciliation_output.xlsx")
