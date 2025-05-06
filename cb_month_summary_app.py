@@ -8,7 +8,7 @@ st.title("📊 GI Reconciliation - 4-Way Summary Split")
 def load_data(file):
     ext = file.name.split('.')[-1]
     if ext == 'csv':
-        return pd.read_csv(file, low_memory=False)
+        return pd.read_csv(file)
     elif ext in ['xls', 'xlsx']:
         return pd.read_excel(file)
     else:
@@ -21,7 +21,9 @@ gmi_file = st.sidebar.file_uploader("Upload GMI File", type=["csv", "xls", "xlsx
 
 if atlantis_file and gmi_file:
     df1 = load_data(atlantis_file)
+    df1.columns = df1.columns.str.strip()
     df2 = load_data(gmi_file)
+    df2.columns = df2.columns.str.strip()
 
     if df1 is not None and df2 is not None:
         df1 = df1[df1['RecordType'] == 'TP']
@@ -34,7 +36,27 @@ if atlantis_file and gmi_file:
             'ClearingAccount': 'Account'
         })
 
+        
+    if 'Acct' in df2.columns:
         df2 = df2.rename(columns={
+            'TGIVF#': 'CB',
+            'TEDATE': 'Date',
+            'TQTY': 'Qty',
+            'TFEE5': 'Fee',
+            'Acct': 'Account'
+        })
+    elif 'Account' in df2.columns:
+        df2 = df2.rename(columns={
+            'TGIVF#': 'CB',
+            'TEDATE': 'Date',
+            'TQTY': 'Qty',
+            'TFEE5': 'Fee'
+        })
+        df2['Account'] = df2['Account']
+    else:
+        st.error("❌ GMI file is missing 'Acct' or 'Account' column. Cannot continue.")
+        st.stop()
+
             'TGIVF#': 'CB',
             'TEDATE': 'Date',
             'TQTY': 'Qty',
@@ -43,11 +65,7 @@ if atlantis_file and gmi_file:
         })
 
         df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
-        df1['Qty'] = pd.to_numeric(df1['Qty'], errors='coerce')
-        df1['Fee'] = pd.to_numeric(df1['Fee'], errors='coerce')
         df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
-        df2['Qty'] = pd.to_numeric(df2['Qty'], errors='coerce')
-        df2['Fee'] = pd.to_numeric(df2['Fee'], errors='coerce')
 
         required_df1_cols = ['CB', 'Date', 'Qty', 'Fee', 'Account']
         required_df2_cols = ['CB', 'Date', 'Qty', 'Fee', 'Account']
