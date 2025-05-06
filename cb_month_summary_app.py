@@ -141,7 +141,7 @@ if atlantis_file and gmi_file:
             st.dataframe(rate_comparison[['CB', 'Date', 'Account', 'Rate_Atlantis', 'Rate_GMI', 'Rate_Diff']])
 
 
-st.subheader("📥 Export All Sections to Excel")
+    st.subheader("📥 Export All Sections to Excel")
 
             buffer = io.BytesIO()
             with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
