@@ -15,11 +15,11 @@ def load_data(file):
         st.error("Unsupported file type.")
         return None
 
-st.sidebar.header("📄 Upload Files")
-atlantis_file = st.sidebar.file_uploader("Upload Atlantis File", type=["csv", "xls", "xlsx"])
-gmi_file = st.sidebar.file_uploader("Upload GMI File", type=["csv", "xls", "xlsx"])
+    st.sidebar.header("📄 Upload Files")
+    atlantis_file = st.sidebar.file_uploader("Upload Atlantis File", type=["csv", "xls", "xlsx"])
+    gmi_file = st.sidebar.file_uploader("Upload GMI File", type=["csv", "xls", "xlsx"])
 
-if atlantis_file and gmi_file:
+    if atlantis_file and gmi_file:
     df1 = load_data(atlantis_file)
     df2 = load_data(gmi_file)
 
