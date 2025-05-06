@@ -37,7 +37,24 @@ if atlantis_file and gmi_file:
             'ClearingAccount': 'Account'
         })
 
-        # Handle GMI Account column smartly
+        
+        # Normalize GMI column names to lowercase and strip spaces
+        df2.columns = df2.columns.str.strip().str.lower()
+        col_map = {col: orig for col, orig in zip(df2.columns, df2.columns)}
+
+        if 'acct' in col_map:
+            acct_col = col_map['acct']
+            df2 = df2.rename(columns={
+                col_map.get('tgivf#', 'tgivf#'): 'CB',
+                col_map.get('tedate', 'tedate'): 'Date',
+                col_map.get('tqty', 'tqty'): 'Qty',
+                col_map.get('tfee5', 'tfee5'): 'Fee',
+                acct_col: 'Account'
+            })
+        else:
+            st.error("❌ GMI file is missing an 'Acct' column (case-insensitive, trimmed). Cannot continue.")
+            st.stop()
+    
         if 'Acct' in df2.columns:
             df2 = df2.rename(columns={
                 'TGIVF#': 'CB',
