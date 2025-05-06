@@ -136,7 +136,7 @@ if atlantis_file and gmi_file:
             rate_comparison = merged.merge(rate_avg, on=['CB', 'Date', 'Account'], how='left', suffixes=('', '_AtlantisMean'))
             rate_comparison['Rate_Atlantis'] = rate_comparison['Rate_Atlantis'].fillna(0)
             rate_comparison['Rate_GMI'] = rate_comparison.apply(lambda row: (row['Fee_GMI'] / row['Qty_GMI']) if row['Qty_GMI'] != 0 else 0, axis=1)
-            rate_comparison['Rate_Diff'] = rate_comparison['Rate_Atlantis'] + rate_comparison['Rate_GMI']
+            rate_comparison['Rate_Diff'] = (rate_comparison['Rate_Atlantis'] - rate_comparison['Rate_GMI']).abs()
             st.header("📈 Rate Comparison by Account")
             st.dataframe(rate_comparison[['CB', 'Date', 'Account', 'Rate_Atlantis', 'Rate_GMI', 'Rate_Diff']])
 
