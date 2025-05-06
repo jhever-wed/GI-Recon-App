@@ -14,19 +14,14 @@ st.set_page_config(page_title="GI Reconciliation App", layout="wide")
 st.title("📊 GI Reconciliation - 4-Way Summary Split")
 
 def load_data(file):
-    ext = file.name.split('.')[-1]
-    if ext == 'csv':
         pass
-if atlantis_file and gmi_file:
     pass
-else:
     pass
 
 st.sidebar.header("📄 Upload Files")
 atlantis_file = st.sidebar.file_uploader("Upload Atlantis File", type=["csv", "xls", "xlsx"])
 gmi_file = st.sidebar.file_uploader("Upload GMI File", type=["csv", "xls", "xlsx"])
 
-if atlantis_file and gmi_file:
     pass
 st.subheader("📥 Export All Sections to Excel")
 buffer = io.BytesIO()
