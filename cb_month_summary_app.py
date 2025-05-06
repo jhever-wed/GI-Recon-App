@@ -133,7 +133,7 @@ if atlantis_file and gmi_file:
             st.subheader("📥 Export All Sections to Excel")
 
             buffer = io.BytesIO()
-            with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
+            with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
                 matched.to_excel(writer, sheet_name="Matched", index=False)
                 qty_match_only.to_excel(writer, sheet_name="Qty_Match_Only", index=False)
                 fee_match_only.to_excel(writer, sheet_name="Fee_Match_Only", index=False)
