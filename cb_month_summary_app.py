@@ -132,9 +132,9 @@ if atlantis_file and gmi_file:
             st.markdown("---")
             
             # ----- Rate Comparison -----
-            rate_avg = df1.groupby(['CB', 'Date', 'Account'], dropna=False)['GiveUpRate'].mean().reset_index()
+            rate_avg = df1.groupby(['CB', 'Date', 'Account'], dropna=False)['GiveUpRate'].mean().reset_index().rename(columns={'GiveUpRate': 'Rate_Atlantis'})
             rate_comparison = merged.merge(rate_avg, on=['CB', 'Date', 'Account'], how='left', suffixes=('', '_AtlantisMean'))
-            rate_comparison['Rate_Atlantis'] = rate_comparison['Rate'].fillna(0)
+            rate_comparison['Rate_Atlantis'] = rate_comparison['Rate_Atlantis'].fillna(0)
             rate_comparison['Rate_GMI'] = rate_comparison.apply(lambda row: (row['Fee_GMI'] / row['Qty_GMI']) if row['Qty_GMI'] != 0 else 0, axis=1)
             rate_comparison['Rate_Diff'] = rate_comparison['Rate_Atlantis'] - rate_comparison['Rate_GMI']
             st.header("📈 Rate Comparison by Account")
