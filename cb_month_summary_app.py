@@ -11,6 +11,7 @@ def load_data(file):
         return pd.read_csv(file, low_memory=False)
     elif ext in ['xls', 'xlsx']:
         return pd.read_excel(file)
+    else:
         st.error("Unsupported file type.")
         return None
 
@@ -24,18 +25,10 @@ if atlantis_file and gmi_file:
 
     if df1 is not None and df2 is not None:
         df1.columns = df1.columns.str.strip()
-        df1 = df1[df1['RecordType'] == 'TP']
         df2.columns = df2.columns.str.strip()
-        df2 = df2[df2['TGIVIO'] == 'GI']
-        df2 = df2.rename(columns={
-            'TGIVF#': 'CB',
-            'TEDATE': 'Date',
-            'TQTY': 'Qty',
-            'TFEE5': 'Fee',
-            'ACCT': 'Account'
-        })
 
         df1 = df1[df1['RecordType'] == 'TP']
+        df2 = df2[df2['TGIVIO'] == 'GI']
 
         df1 = df1.rename(columns={
             'ExchangeEBCode': 'CB',
@@ -45,9 +38,6 @@ if atlantis_file and gmi_file:
             'ClearingAccount': 'Account'
         })
 
-        # Normalize GMI column names to lowercase and strip spaces
-        df2.columns = df2.columns.str.strip()
-        df2 = df2[df2['TGIVIO'] == 'GI']
         df2 = df2.rename(columns={
             'TGIVF#': 'CB',
             'TEDATE': 'Date',
@@ -73,6 +63,7 @@ if atlantis_file and gmi_file:
             st.error(f"❌ Missing columns in Atlantis file: {missing1}")
         elif missing2:
             st.error(f"❌ Missing columns in GMI file: {missing2}")
+        else:
             summary1 = df1.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
             summary2 = df2.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
 
@@ -108,51 +99,3 @@ if atlantis_file and gmi_file:
 
             st.header("⚠️ No Match (Qty + Fee mismatch)")
             st.dataframe(no_match)
-
-            st.markdown("---")
-            # ----- Rate Comparison -----
-            rate_avg = df1.groupby(['CB', 'Date', 'Account'], dropna=False)['GiveUpRate'].mean().reset_index().rename(columns={'GiveUpRate': 'Rate_Atlantis'})
-            rate_comparison = merged.merge(rate_avg, on=['CB', 'Date', 'Account'], how='left', suffixes=('', '_AtlantisMean'))
-            rate_comparison['Rate_Atlantis'] = rate_comparison['Rate_Atlantis'].fillna(0)
-            rate_comparison['Rate_GMI'] = rate_comparison.apply(lambda row: (row['Fee_GMI'] / row['Qty_GMI']) if row['Qty_GMI'] != 0 else 0, axis=1)
-            rate_comparison['Rate_Diff'] = rate_comparison['Rate_Atlantis'] + rate_comparison['Rate_GMI']
-            st.header("📈 Rate Comparison by Account")
-            st.dataframe(rate_comparison[['CB', 'Date', 'Account', 'Rate_Atlantis', 'Rate_GMI', 'Rate_Diff']])
-
-
-            st.subheader("📥 Export All Sections to Excel")
-
-            buffer = io.BytesIO()
-            with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-                matched.to_excel(writer, sheet_name="Matched", index=False)
-                qty_match_only.to_excel(writer, sheet_name="Qty_Match_Only", index=False)
-                fee_match_only.to_excel(writer, sheet_name="Fee_Match_Only", index=False)
-                no_match.to_excel(writer, sheet_name="No_Match", index=False)
-                rate_comparison[['CB', 'Date', 'Account', 'Rate_Atlantis', 'Rate_GMI', 'Rate_Diff']].to_excel(writer, sheet_name="Rate_Comparison", index=False)
-            buffer.seek(0)
-
-            st.download_button(
-                label="📥 Download Excel File (All 5 Sections)",
-                data=buffer,
-                file_name="reconciliation_summary.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-
-
-            buffer = io.BytesIO()
-            with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-                matched.to_excel(writer, sheet_name="Matched", index=False)
-                qty_match_only.to_excel(writer, sheet_name="Qty_Match_Only", index=False)
-                fee_match_only.to_excel(writer, sheet_name="Fee_Match_Only", index=False)
-                no_match.to_excel(writer, sheet_name="No_Match", index=False)
-
-                rate_comparison[['CB', 'Date', 'Account', 'Rate_Atlantis', 'Rate_GMI', 'Rate_Diff']].to_excel(writer, sheet_name="Rate_Comparison", index=False)
-
-            buffer.seek(0)
-
-            st.download_button(
-                label="📥 Download Excel File (All 4 Sections)",
-                data=buffer,
-                file_name="reconciliation_summary.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
