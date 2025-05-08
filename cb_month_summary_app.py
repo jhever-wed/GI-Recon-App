@@ -78,8 +78,8 @@ if atlantis_file and gmi_file:
             for col in ['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']:
                 merged[col] = merged[col].fillna(0)
 
-            merged['Qty_Diff'] = merged['Qty_Atlantis'] - merged['Qty_GMI']
-            merged['Fee_Diff'] = merged['Fee_Atlantis'] + merged['Fee_GMI']
+            merged['Qty_Diff'] = (merged['Qty_Atlantis'] - merged['Qty_GMI']).round(2)
+            merged['Fee_Diff'] = (merged['Fee_Atlantis'] + merged['Fee_GMI']).round(2)
 
             matched = merged[(merged['Qty_Diff'].round(2) == 0) & (merged['Fee_Diff'].round(2) == 0)]
             qty_match_only = merged[(merged['Qty_Diff'].round(2) == 0) & (merged['Fee_Diff'].round(2) != 0)]
