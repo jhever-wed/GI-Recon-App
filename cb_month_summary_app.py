@@ -22,80 +22,68 @@ gmi_file = st.sidebar.file_uploader("Upload GMI File", type=["csv", "xls", "xlsx
 if atlantis_file and gmi_file:
     df1 = load_data(atlantis_file)
     df2 = load_data(gmi_file)
+    df1.columns = df1.columns.str.strip()
+    df2.columns = df2.columns.str.strip()
 
-    if df1 is not None and df2 is not None:
-        df1.columns = df1.columns.str.strip()
-        df2.columns = df2.columns.str.strip()
+    df1 = df1[df1['RecordType'] == 'TP']
+    df2 = df2[df2['TGIVIO'] == 'GI']
 
-        df1 = df1[df1['RecordType'] == 'TP']
-        df2 = df2[df2['TGIVIO'] == 'GI']
+    df1 = df1.rename(columns={
+        'ExchangeEBCode': 'CB',
+        'TradeDate': 'Date',
+        'Quantity': 'Qty',
+        'GiveUpAmt': 'Fee',
+        'ClearingAccount': 'Account'
+    })
 
-        df1 = df1.rename(columns={
-            'ExchangeEBCode': 'CB',
-            'TradeDate': 'Date',
-            'Quantity': 'Qty',
-            'GiveUpAmt': 'Fee',
-            'ClearingAccount': 'Account'
-        })
+    df2 = df2.rename(columns={
+        'TGIVF#': 'CB',
+        'TEDATE': 'Date',
+        'TQTY': 'Qty',
+        'TFEE5': 'Fee',
+        'ACCT': 'Account'
+    })
 
-        df2 = df2.rename(columns={
-            'TGIVF#': 'CB',
-            'TEDATE': 'Date',
-            'TQTY': 'Qty',
-            'TFEE5': 'Fee',
-            'ACCT': 'Account'
-        })
+    df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
+    df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
 
-        df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
-        df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
+    df1['Qty'] = pd.to_numeric(df1['Qty'], errors='coerce')
+    df1['Fee'] = pd.to_numeric(df1['Fee'], errors='coerce')
+    df2['Qty'] = pd.to_numeric(df2['Qty'], errors='coerce')
+    df2['Fee'] = pd.to_numeric(df2['Fee'], errors='coerce')
 
-        df1['Qty'] = pd.to_numeric(df1['Qty'], errors='coerce')
-        df1['Fee'] = pd.to_numeric(df1['Fee'], errors='coerce')
-        df2['Qty'] = pd.to_numeric(df2['Qty'], errors='coerce')
-        df2['Fee'] = pd.to_numeric(df2['Fee'], errors='coerce')
+    summary1 = df1.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
+    summary2 = df2.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
 
-        required_df1_cols = ['CB', 'Date', 'Qty', 'Fee', 'Account']
-        required_df2_cols = ['CB', 'Date', 'Qty', 'Fee', 'Account']
-        missing1 = [col for col in required_df1_cols if col not in df1.columns]
-        missing2 = [col for col in required_df2_cols if col not in df2.columns]
+    summary1['CB'] = summary1['CB'].astype(str).str.strip()
+    summary2['CB'] = summary2['CB'].astype(str).str.strip()
 
-        if missing1:
-            st.error(f"❌ Missing columns in Atlantis file: {missing1}")
-        elif missing2:
-            st.error(f"❌ Missing columns in GMI file: {missing2}")
-        else:
-            summary1 = df1.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
-            summary2 = df2.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
+    summary1 = summary1.rename(columns={'Qty': 'Qty_Atlantis', 'Fee': 'Fee_Atlantis'})
+    summary2 = summary2.rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI'})
 
-            summary1['CB'] = summary1['CB'].astype(str).str.strip()
-            summary2['CB'] = summary2['CB'].astype(str).str.strip()
+    merged = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account'], how='outer')
 
-            summary1 = summary1.rename(columns={'Qty': 'Qty_Atlantis', 'Fee': 'Fee_Atlantis'})
-            summary2 = summary2.rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI'})
+    for col in ['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']:
+        merged[col] = merged[col].fillna(0)
 
-            merged = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account'], how='outer')
+    merged['Qty_Diff'] = (merged['Qty_Atlantis'] - merged['Qty_GMI']).round(2)
+    merged['Fee_Diff'] = (merged['Fee_Atlantis'] + merged['Fee_GMI']).round(2)
 
-            for col in ['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']:
-                merged[col] = merged[col].fillna(0)
+    matched = merged[(merged['Qty_Diff'] == 0) & (merged['Fee_Diff'] == 0)]
+    qty_match_only = merged[(merged['Qty_Diff'] == 0) & (merged['Fee_Diff'] != 0)]
+    fee_match_only = merged[(merged['Qty_Diff'] != 0) & (merged['Fee_Diff'] == 0)]
+    no_match = merged[(merged['Qty_Diff'] != 0) & (merged['Fee_Diff'] != 0)]
 
-            merged['Qty_Diff'] = (merged['Qty_Atlantis'] - merged['Qty_GMI']).round(2)
-            merged['Fee_Diff'] = (merged['Fee_Atlantis'] + merged['Fee_GMI']).round(2)
+    st.success("✅ Reconciliation Completed!")
 
-            matched = merged[(merged['Qty_Diff'].round(2) == 0) & (merged['Fee_Diff'].round(2) == 0)]
-            qty_match_only = merged[(merged['Qty_Diff'].round(2) == 0) & (merged['Fee_Diff'].round(2) != 0)]
-            fee_match_only = merged[(merged['Qty_Diff'].round(2) != 0) & (merged['Fee_Diff'].round(2) == 0)]
-            no_match = merged[(merged['Qty_Diff'].round(2) != 0) & (merged['Fee_Diff'].round(2) != 0)]
+    st.header("✅ Full Matches (Qty + Fee)")
+    st.dataframe(matched)
 
-            st.success("✅ Reconciliation Completed!")
+    st.header("🔍 Qty Match Only (Fee mismatch)")
+    st.dataframe(qty_match_only)
 
-            st.header("✅ Full Matches (Qty + Fee)")
-            st.dataframe(matched)
+    st.header("🔍 Fee Match Only (Qty mismatch)")
+    st.dataframe(fee_match_only)
 
-            st.header("🔍 Qty Match Only (Fee mismatch)")
-            st.dataframe(qty_match_only)
-
-            st.header("🔍 Fee Match Only (Qty mismatch)")
-            st.dataframe(fee_match_only)
-
-            st.header("⚠️ No Match (Qty + Fee mismatch)")
-            st.dataframe(no_match)
+    st.header("⚠️ No Match (Qty + Fee mismatch)")
+    st.dataframe(no_match)
