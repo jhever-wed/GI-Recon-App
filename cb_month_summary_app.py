@@ -11,7 +11,6 @@ def load_data(file):
         return pd.read_csv(file, low_memory=False)
     elif ext in ['xls', 'xlsx']:
         return pd.read_excel(file)
-    else:
         st.error("Unsupported file type.")
         return None
 
@@ -43,40 +42,8 @@ if atlantis_file and gmi_file:
         # Normalize GMI column names to lowercase and strip spaces
         df2.columns = df2.columns.str.strip()
         df2 = df2[df2['TGIVIO'] == 'GI']
-        col_map = {col: orig for col, orig in zip(df2.columns, df2.columns)}
-
-        if 'acct' in col_map:
-            acct_col = col_map['acct']
-            df2 = df2.rename(columns={
-                col_map.get('tgivf#', 'tgivf#'): 'CB',
-                col_map.get('tedate', 'tedate'): 'Date',
-                col_map.get('tqty', 'tqty'): 'Qty',
-                col_map.get('tfee5', 'tfee5'): 'Fee',
-                acct_col: 'Account'
-            })
-        else:
-            st.error("❌ GMI file is missing an 'Acct' column (case-insensitive, trimmed). Cannot continue.")
-            st.stop()
     
-        if 'Acct' in df2.columns:
-            df2 = df2.rename(columns={
-                'TGIVF#': 'CB',
-                'TEDATE': 'Date',
-                'TQTY': 'Qty',
-                'TFEE5': 'Fee',
-                'Acct': 'Account'
-            })
-        elif 'Account' in df2.columns:
-            df2 = df2.rename(columns={
-                'TGIVF#': 'CB',
-                'TEDATE': 'Date',
-                'TQTY': 'Qty',
-                'TFEE5': 'Fee'
-            })
             df2['Account'] = df2['Account']
-        else:
-            st.error("❌ GMI file is missing 'Acct' or 'Account' column. Cannot continue.")
-            st.stop()
 
         df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
         df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
@@ -95,7 +62,6 @@ if atlantis_file and gmi_file:
             st.error(f"❌ Missing columns in Atlantis file: {missing1}")
         elif missing2:
             st.error(f"❌ Missing columns in GMI file: {missing2}")
-        else:
             summary1 = df1.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
             summary2 = df2.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
 
