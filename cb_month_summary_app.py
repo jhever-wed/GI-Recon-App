@@ -38,12 +38,9 @@ if atlantis_file and gmi_file:
             'ClearingAccount': 'Account'
         })
 
-        
         # Normalize GMI column names to lowercase and strip spaces
         df2.columns = df2.columns.str.strip()
         df2 = df2[df2['TGIVIO'] == 'GI']
-    
-            df2['Account'] = df2['Account']
 
         df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
         df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
@@ -99,7 +96,6 @@ if atlantis_file and gmi_file:
             st.dataframe(no_match)
 
             st.markdown("---")
-            
             # ----- Rate Comparison -----
             rate_avg = df1.groupby(['CB', 'Date', 'Account'], dropna=False)['GiveUpRate'].mean().reset_index().rename(columns={'GiveUpRate': 'Rate_Atlantis'})
             rate_comparison = merged.merge(rate_avg, on=['CB', 'Date', 'Account'], how='left', suffixes=('', '_AtlantisMean'))
@@ -110,7 +106,6 @@ if atlantis_file and gmi_file:
             st.dataframe(rate_comparison[['CB', 'Date', 'Account', 'Rate_Atlantis', 'Rate_GMI', 'Rate_Diff']])
 
 
-    
             st.subheader("📥 Export All Sections to Excel")
 
             buffer = io.BytesIO()
