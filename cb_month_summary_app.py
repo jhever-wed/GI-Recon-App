@@ -41,7 +41,7 @@ if atlantis_file and gmi_file:
 
         
         # Normalize GMI column names to lowercase and strip spaces
-        df2.columns = df2.columns.str.strip().str.lower()
+        df2.columns = df2.columns.str.strip()
         df2 = df2[df2['TGIVIO'] == 'GI']
         col_map = {col: orig for col, orig in zip(df2.columns, df2.columns)}
 
