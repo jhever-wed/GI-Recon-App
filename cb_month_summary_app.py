@@ -85,6 +85,21 @@ if atlantis_file and gmi_file:
 
     st.success("✅ Reconciliation Completed!")
 
+    import io
+    from openpyxl import Workbook
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        matched.to_excel(writer, sheet_name='Full Matches', index=False)
+        qty_match_only.to_excel(writer, sheet_name='Qty Match Only', index=False)
+        fee_match_only.to_excel(writer, sheet_name='Fee Match Only', index=False)
+        no_match.to_excel(writer, sheet_name='No Match', index=False)
+    st.download_button(
+        label="📥 Download Reconciliation Excel",
+        data=output.getvalue(),
+        file_name="reconciliation_results.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
     if 'recon_data' in st.session_state:
         csv_data = st.session_state['recon_data'].to_csv(index=False)
         st.download_button(
