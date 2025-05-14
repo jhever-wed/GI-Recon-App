@@ -70,6 +70,7 @@ if atlantis_file and gmi_file:
     summary2 = summary2.rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI'})
 
     merged = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account'], how='outer')
+    st.session_state['recon_data'] = merged.copy()
 
     for col in ['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']:
         merged[col] = merged[col].fillna(0)
@@ -83,6 +84,15 @@ if atlantis_file and gmi_file:
     no_match = merged[(merged['Qty_Diff'] != 0) & (merged['Fee_Diff'] != 0)]
 
     st.success("✅ Reconciliation Completed!")
+
+    if 'recon_data' in st.session_state:
+        csv_data = st.session_state['recon_data'].to_csv(index=False)
+        st.download_button(
+            label="📥 Download Reconciliation CSV",
+            data=csv_data,
+            file_name="reconciliation_results.csv",
+            mime="text/csv"
+        )
 
     st.header("✅ Full Matches (Qty + Fee)")
     st.dataframe(matched)
