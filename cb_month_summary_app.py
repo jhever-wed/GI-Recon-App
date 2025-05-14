@@ -47,6 +47,14 @@ if atlantis_file and gmi_file:
     df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
     df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
 
+    # Month filter
+    months1 = df1['Date'].dt.to_period('M').dropna().unique()
+    months2 = df2['Date'].dt.to_period('M').dropna().unique()
+    all_months = sorted(set(months1).union(set(months2)))
+    selected_month = st.sidebar.selectbox("📅 Select Month", all_months)
+    df1 = df1[df1['Date'].dt.to_period('M') == selected_month]
+    df2 = df2[df2['Date'].dt.to_period('M') == selected_month]
+
     df1['Qty'] = pd.to_numeric(df1['Qty'], errors='coerce')
     df1['Fee'] = pd.to_numeric(df1['Fee'], errors='coerce')
     df2['Qty'] = pd.to_numeric(df2['Qty'], errors='coerce')
