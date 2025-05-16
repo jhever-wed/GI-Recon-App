@@ -47,18 +47,18 @@ if atlantis_file and gmi_file:
     df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
     df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
 
-    # Month filter
-    months1 = df1['Date'].dt.to_period('M').dropna().unique()
-    months2 = df2['Date'].dt.to_period('M').dropna().unique()
-    all_months = sorted(set(months1).union(set(months2)))
-    selected_month = st.sidebar.selectbox("📅 Select Month", all_months)
-    df1 = df1[df1['Date'].dt.to_period('M') == selected_month]
-    df2 = df2[df2['Date'].dt.to_period('M') == selected_month]
-
     df1['Qty'] = pd.to_numeric(df1['Qty'], errors='coerce')
     df1['Fee'] = pd.to_numeric(df1['Fee'], errors='coerce')
     df2['Qty'] = pd.to_numeric(df2['Qty'], errors='coerce')
     df2['Fee'] = pd.to_numeric(df2['Fee'], errors='coerce')
+
+    months1 = df1['Date'].dt.to_period('M').dropna().unique()
+    months2 = df2['Date'].dt.to_period('M').dropna().unique()
+    all_months = sorted(set(months1).union(set(months2)))
+    selected_month = st.sidebar.selectbox("📅 Select Month", all_months)
+
+    df1 = df1[df1['Date'].dt.to_period('M') == selected_month]
+    df2 = df2[df2['Date'].dt.to_period('M') == selected_month]
 
     summary1 = df1.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
     summary2 = df2.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
@@ -70,7 +70,6 @@ if atlantis_file and gmi_file:
     summary2 = summary2.rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI'})
 
     merged = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account'], how='outer')
-    st.session_state['recon_data'] = merged.copy()
 
     for col in ['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']:
         merged[col] = merged[col].fillna(0)
@@ -85,30 +84,6 @@ if atlantis_file and gmi_file:
 
     st.success("✅ Reconciliation Completed!")
 
-    import io
-    from openpyxl import Workbook
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        matched.to_excel(writer, sheet_name='Full Matches', index=False)
-        qty_match_only.to_excel(writer, sheet_name='Qty Match Only', index=False)
-        fee_match_only.to_excel(writer, sheet_name='Fee Match Only', index=False)
-        no_match.to_excel(writer, sheet_name='No Match', index=False)
-    st.download_button(
-        label="📥 Download Reconciliation Excel",
-        data=output.getvalue(),
-        file_name="reconciliation_results.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-    if 'recon_data' in st.session_state:
-        csv_data = st.session_state['recon_data'].to_csv(index=False)
-        st.download_button(
-            label="📥 Download Reconciliation CSV",
-            data=csv_data,
-            file_name="reconciliation_results.csv",
-            mime="text/csv"
-        )
-
     st.header("✅ Full Matches (Qty + Fee)")
     st.dataframe(matched)
 
@@ -120,3 +95,23 @@ if atlantis_file and gmi_file:
 
     st.header("⚠️ No Match (Qty + Fee mismatch)")
     st.dataframe(no_match)
+
+    # Export Excel with top summary tab
+    import io
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        top_summary = merged.groupby('CB')[['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']].sum().reset_index()
+        top_summary['Qty_Diff'] = (top_summary['Qty_Atlantis'] - top_summary['Qty_GMI']).round(2)
+        top_summary['Fee_Diff'] = (top_summary['Fee_Atlantis'] + top_summary['Fee_GMI']).round(2)
+        top_summary.to_excel(writer, sheet_name='Top Summary by CB', index=False)
+        matched.to_excel(writer, sheet_name='Full Matches', index=False)
+        qty_match_only.to_excel(writer, sheet_name='Qty Match Only', index=False)
+        fee_match_only.to_excel(writer, sheet_name='Fee Match Only', index=False)
+        no_match.to_excel(writer, sheet_name='No Match', index=False)
+
+    st.download_button(
+        label="📥 Download Reconciliation Excel",
+        data=output.getvalue(),
+        file_name="reconciliation_results.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
