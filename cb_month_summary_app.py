@@ -71,6 +71,12 @@ if atlantis_file and gmi_file:
 
     merged = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account'], how='outer')
 
+    st.header("📊 Summary by CB")
+    top_summary = merged.groupby('CB')[['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']].sum().reset_index()
+    top_summary['Qty_Diff'] = (top_summary['Qty_Atlantis'] - top_summary['Qty_GMI']).round(2)
+    top_summary['Fee_Diff'] = (top_summary['Fee_Atlantis'] + top_summary['Fee_GMI']).round(2)
+    st.dataframe(top_summary)
+
     for col in ['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']:
         merged[col] = merged[col].fillna(0)
 
