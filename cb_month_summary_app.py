@@ -81,7 +81,6 @@ if uploaded_file1 and uploaded_file2:
 top_summary = merged.groupby('CB', dropna=False)[
         ['QTY_ATLANTIS', 'FEE_ATLANTIS', 'QTY_GMI', 'FEE_GMI']
     ].sum().reset_index()
-)
     top_summary['QTY_DIFF'] = (top_summary['QTY_ATLANTIS'] - top_summary['QTY_GMI']).round(2)
     top_summary['FEE_DIFF'] = (top_summary['FEE_ATLANTIS'] + top_summary['FEE_GMI']).round(2)
     st.dataframe(top_summary)
