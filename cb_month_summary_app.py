@@ -93,6 +93,21 @@ if atlantis_file and gmi_file:
     merged['Qty_Diff'] = (merged['Qty_Atlantis'] - merged['Qty_GMI']).round(2)
     merged['Fee_Diff'] = (merged['Fee_Atlantis'] + merged['Fee_GMI']).round(2)
 
+    st.header("📊 Summary by CB")
+    top_summary = merged.groupby('CB')[['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']].sum().reset_index()
+    top_summary['Qty_Diff'] = (top_summary['Qty_Atlantis'] - top_summary['Qty_GMI']).round(2)
+    top_summary['Fee_Diff'] = (top_summary['Fee_Atlantis'] + top_summary['Fee_GMI']).round(2)
+    st.dataframe(top_summary)
+
+    for _, row in top_summary.iterrows():
+        cb = row['CB']
+        qty_diff = row['Qty_Diff']
+        fee_diff = row['Fee_Diff']
+        if qty_diff != 0 or fee_diff != 0:
+            with st.expander(f"Details for CB {cb} (Mismatch)"):
+                detail = merged[(merged['CB'] == cb) & ((merged['Qty_Diff'] != 0) | (merged['Fee_Diff'] != 0))]
+                st.dataframe(detail)
+
     matched = merged[(merged['Qty_Diff'] == 0) & (merged['Fee_Diff'] == 0)]
     qty_match_only = merged[(merged['Qty_Diff'] == 0) & (merged['Fee_Diff'] != 0)]
     fee_match_only = merged[(merged['Qty_Diff'] != 0) & (merged['Fee_Diff'] == 0)]
