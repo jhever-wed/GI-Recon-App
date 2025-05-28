@@ -122,6 +122,8 @@ if atlantis_file and gmi_file:
         data=output.getvalue(),
         file_name="reconciliation_results.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    )# Ensure 'merged' is defined before displaying detail section
+merged = pd.concat([matched_rows, unmatched_rows], ignore_index=True)
+
 st.subheader('Section 2: Detail Rows Making Up the Summary')
 st.dataframe(merged)  # Replace with properly formatted detail output
