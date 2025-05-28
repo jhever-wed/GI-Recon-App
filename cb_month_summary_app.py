@@ -78,8 +78,7 @@ if uploaded_file1 and uploaded_file2:
 
     st.header("📊 Summary by CB")
     # Fix: ensure CB-level summary regardless of mismatches in date/account
-top_summary = (
-    merged.groupby('CB', dropna=False)[
+top_summary = merged.groupby('CB', dropna=False)[
         ['QTY_ATLANTIS', 'FEE_ATLANTIS', 'QTY_GMI', 'FEE_GMI']
     ].sum().reset_index()
 )
