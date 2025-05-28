@@ -77,7 +77,12 @@ if uploaded_file1 and uploaded_file2:
     merged['FEE_DIFF'] = (merged['FEE_ATLANTIS'] + merged['FEE_GMI']).round(2)
 
     st.header("📊 Summary by CB")
-    top_summary = merged.groupby('CB')[['QTY_ATLANTIS', 'FEE_ATLANTIS', 'QTY_GMI', 'FEE_GMI']].sum().reset_index()
+    # Fix: ensure CB-level summary regardless of mismatches in date/account
+top_summary = (
+    merged.groupby('CB', dropna=False)[
+        ['QTY_ATLANTIS', 'FEE_ATLANTIS', 'QTY_GMI', 'FEE_GMI']
+    ].sum().reset_index()
+)
     top_summary['QTY_DIFF'] = (top_summary['QTY_ATLANTIS'] - top_summary['QTY_GMI']).round(2)
     top_summary['FEE_DIFF'] = (top_summary['FEE_ATLANTIS'] + top_summary['FEE_GMI']).round(2)
     st.dataframe(top_summary)
