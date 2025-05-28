@@ -77,6 +77,16 @@ if atlantis_file and gmi_file:
     top_summary['Fee_Diff'] = (top_summary['Fee_Atlantis'] + top_summary['Fee_GMI']).round(2)
     st.dataframe(top_summary)
 
+    # Show details for any CBs with mismatches
+    for _, row in top_summary.iterrows():
+        cb = row['CB']
+        qty_diff = row['Qty_Diff']
+        fee_diff = row['Fee_Diff']
+        if qty_diff != 0 or fee_diff != 0:
+            with st.expander(f"Details for CB {cb} (Mismatch)"):
+                detail = merged[(merged['CB'] == cb) & ((merged['Qty_Diff'] != 0) | (merged['Fee_Diff'] != 0))]
+                st.dataframe(detail)
+
     for col in ['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']:
         merged[col] = merged[col].fillna(0)
 
