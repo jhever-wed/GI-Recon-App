@@ -68,6 +68,20 @@ if atlantis_file and gmi_file:
         with tab1:
             st.header("CB Summary")
             st.dataframe(merged)
+        
+# --- Download Full Report (both CB Summary and Mismatch Summary) ---
+buf_full = io.BytesIO()
+with pd.ExcelWriter(buf_full, engine="openpyxl") as writer:
+    merged.to_excel(writer, sheet_name="CB_Summary", index=False)
+    mismatches.to_excel(writer, sheet_name="Mismatch_Summary", index=False)
+buf_full.seek(0)
+st.download_button(
+    label="Download Full Report",
+    data=buf_full.getvalue(),
+    file_name=f"full_report_{selected_str}.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
             # Download merged summary
             st.subheader("📥 Download CB Summary")
             buf1 = io.BytesIO()
@@ -81,6 +95,20 @@ if atlantis_file and gmi_file:
             mismatches = merged[(merged['qty_atlantis'] != merged['qty_gmi']) | (merged['fee_atlantis'] != merged['fee_gmi'])]
             st.header("📊 Mismatch Summary by Account & Date")
             st.dataframe(mismatches)
+        
+# --- Download Full Report (both CB Summary and Mismatch Summary) ---
+buf_full = io.BytesIO()
+with pd.ExcelWriter(buf_full, engine="openpyxl") as writer:
+    merged.to_excel(writer, sheet_name="CB_Summary", index=False)
+    mismatches.to_excel(writer, sheet_name="Mismatch_Summary", index=False)
+buf_full.seek(0)
+st.download_button(
+    label="Download Full Report",
+    data=buf_full.getvalue(),
+    file_name=f"full_report_{selected_str}.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
             st.subheader("📥 Download Mismatch Excel")
             buf2 = io.BytesIO()
             with pd.ExcelWriter(buf2, engine="openpyxl") as writer:
