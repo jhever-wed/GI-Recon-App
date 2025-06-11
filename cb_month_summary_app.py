@@ -1,83 +1,123 @@
-
 import streamlit as st
 import pandas as pd
-from io import BytesIO
+import io
 
-st.set_page_config(layout="wide")
-st.title("GI Reconciliation - Simplified")
+st.set_page_config(page_title="GI Reconciliation App", layout="wide")
+st.title("📊 GI Reconciliation - 4-Way Summary Split")
 
-uploaded_file1 = st.file_uploader("Upload Atlantis File", type=["csv", "xlsx"])
-uploaded_file2 = st.file_uploader("Upload GMI File", type=["csv", "xlsx"])
+def load_data(file):
+    ext = file.name.split('.')[-1]
+    if ext == 'csv':
+        return pd.read_csv(file, low_memory=False)
+    elif ext in ['xls', 'xlsx']:
+        return pd.read_excel(file)
+    else:
+        st.error("Unsupported file type.")
+        return None
 
-if uploaded_file1 and uploaded_file2:
-    # Load and standardize
-    df1 = pd.read_csv(uploaded_file1) if uploaded_file1.name.endswith(".csv") else pd.read_excel(uploaded_file1)
-    df2 = pd.read_excel(uploaded_file2)
+st.sidebar.header("📄 Upload Files")
+atlantis_file = st.sidebar.file_uploader("Upload Atlantis File", type=["csv", "xls", "xlsx"])
+gmi_file = st.sidebar.file_uploader("Upload GMI File", type=["csv", "xls", "xlsx"])
 
-    df1.columns = df1.columns.str.strip().str.upper()
-    df2.columns = df2.columns.str.strip().str.upper()
+if atlantis_file and gmi_file:
+    df1 = load_data(atlantis_file)
+    df2 = load_data(gmi_file)
+    df1.columns = df1.columns.str.strip()
+    df2.columns = df2.columns.str.strip()
 
-    # Filter
-    df1 = df1[df1["RECORDTYPE"] == "TR"]
+    df1 = df1[df1['RecordType'] == 'TP']
+    df2 = df2[df2['TGIVIO'] == 'GI']
 
-    # Ensure date columns are datetime
-    df1["TRADEDATE"] = pd.to_datetime(df1["TRADEDATE"], errors="coerce")
-    df2["TEDATE"] = pd.to_datetime(df2["TEDATE"], errors="coerce")
+    df1 = df1.rename(columns={
+        'ExchangeEBCode': 'CB',
+        'TradeDate': 'Date',
+        'Quantity': 'Qty',
+        'GiveUpAmt': 'Fee',
+        'ClearingAccount': 'Account'
+    })
 
-    # Normalize numerics
-    df1["QUANTITY"] = pd.to_numeric(df1["QUANTITY"], errors="coerce")
-    df1["GIVEUPAMT"] = pd.to_numeric(df1["GIVEUPAMT"], errors="coerce")
-    df1["GIVEUPRATE"] = pd.to_numeric(df1["GIVEUPRATE"], errors="coerce")
+    df2 = df2.rename(columns={
+        'TGIVF#': 'CB',
+        'TEDATE': 'Date',
+        'TQTY': 'Qty',
+        'TFEE5': 'Fee',
+        'ACCT': 'Account'
+    })
 
-    df2["TQTY"] = pd.to_numeric(df2["TQTY"], errors="coerce")
-    df2["TFEE5"] = pd.to_numeric(df2["TFEE5"], errors="coerce")
+    df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
+    df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
 
-    # Keys
-    df1["CB_DATE"] = df1["EXCHANGEEBCODE"].astype(str) + "_" + df1["TRADEDATE"].dt.strftime("%Y-%m-%d")
-    df2["CB_DATE"] = df2["TGIVF#"].astype(str) + "_" + df2["TEDATE"].dt.strftime("%Y-%m-%d")
+    df1['Qty'] = pd.to_numeric(df1['Qty'], errors='coerce')
+    df1['Fee'] = pd.to_numeric(df1['Fee'], errors='coerce')
+    df2['Qty'] = pd.to_numeric(df2['Qty'], errors='coerce')
+    df2['Fee'] = pd.to_numeric(df2['Fee'], errors='coerce')
 
-    df1["CB"] = df1["EXCHANGEEBCODE"]
-    df2["CB"] = df2["TGIVF#"]
+    months1 = df1['Date'].dt.to_period('M').dropna().unique()
+    months2 = df2['Date'].dt.to_period('M').dropna().unique()
+    all_months = sorted(set(months1).union(set(months2)))
+    selected_month = st.sidebar.selectbox("📅 Select Month", all_months)
 
-    # Summarize
-    summary1 = df1.groupby("CB")[["QUANTITY", "GIVEUPAMT"]].sum().rename(columns={"QUANTITY": "QTY_ATLANTIS", "GIVEUPAMT": "FEE_ATLANTIS"})
-    summary2 = df2.groupby("CB")[["TQTY", "TFEE5"]].sum().rename(columns={"TQTY": "QTY_GMI", "TFEE5": "FEE_GMI"})
-    top_summary = summary1.join(summary2, how="outer").fillna(0)
-    top_summary["QTY_DIFF"] = (top_summary["QTY_ATLANTIS"] - top_summary["QTY_GMI"]).round(2)
-    top_summary["FEE_DIFF"] = (top_summary["FEE_ATLANTIS"] + top_summary["FEE_GMI"]).round(2)
+    df1 = df1[df1['Date'].dt.to_period('M') == selected_month]
+    df2 = df2[df2['Date'].dt.to_period('M') == selected_month]
 
-    st.subheader("Section 1: Summary by CB")
+    summary1 = df1.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
+    summary2 = df2.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
+
+    summary1['CB'] = summary1['CB'].astype(str).str.strip()
+    summary2['CB'] = summary2['CB'].astype(str).str.strip()
+
+    summary1 = summary1.rename(columns={'Qty': 'Qty_Atlantis', 'Fee': 'Fee_Atlantis'})
+    summary2 = summary2.rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI'})
+
+    merged = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account'], how='outer')
+
+    st.header("📊 Summary by CB")
+    top_summary = merged.groupby('CB')[['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']].sum().reset_index()
+    top_summary['Qty_Diff'] = (top_summary['Qty_Atlantis'] - top_summary['Qty_GMI']).round(2)
+    top_summary['Fee_Diff'] = (top_summary['Fee_Atlantis'] + top_summary['Fee_GMI']).round(2)
     st.dataframe(top_summary)
 
-    # Detail merge
-    cols1 = ["CB_DATE", "EXCHANGEEBCODE", "TRADEDATE", "QUANTITY", "GIVEUPAMT", "GIVEUPRATE", "CLEARINGACCOUNT"]
-    cols2 = ["CB_DATE", "TGIVF#", "TEDATE", "TQTY", "TFEE5", "ACCT"]
-    df1_detail = df1[cols1].rename(columns={
-        "EXCHANGEEBCODE": "CB",
-        "TRADEDATE": "DATE",
-        "QUANTITY": "QTY_ATLANTIS",
-        "GIVEUPAMT": "FEE_ATLANTIS",
-        "GIVEUPRATE": "RATE_ATLANTIS",
-        "CLEARINGACCOUNT": "ACCOUNT_ATLANTIS"
-    })
-    df2_detail = df2[cols2].rename(columns={
-        "TGIVF#": "CB",
-        "TEDATE": "DATE",
-        "TQTY": "QTY_GMI",
-        "TFEE5": "FEE_GMI",
-        "ACCT": "ACCOUNT_GMI"
-    })
+    for col in ['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']:
+        merged[col] = merged[col].fillna(0)
 
-    merged = pd.merge(df1_detail, df2_detail, on="CB_DATE", how="outer")
-    merged["QTY_DIFF"] = (merged["QTY_ATLANTIS"].fillna(0) - merged["QTY_GMI"].fillna(0)).round(2)
-    merged["FEE_DIFF"] = (merged["FEE_ATLANTIS"].fillna(0) + merged["FEE_GMI"].fillna(0)).round(2)
+    merged['Qty_Diff'] = (merged['Qty_Atlantis'] - merged['Qty_GMI']).round(2)
+    merged['Fee_Diff'] = (merged['Fee_Atlantis'] + merged['Fee_GMI']).round(2)
 
-    st.subheader("Section 2: Detail Rows")
-    st.dataframe(merged)
+    matched = merged[(merged['Qty_Diff'] == 0) & (merged['Fee_Diff'] == 0)]
+    qty_match_only = merged[(merged['Qty_Diff'] == 0) & (merged['Fee_Diff'] != 0)]
+    fee_match_only = merged[(merged['Qty_Diff'] != 0) & (merged['Fee_Diff'] == 0)]
+    no_match = merged[(merged['Qty_Diff'] != 0) & (merged['Fee_Diff'] != 0)]
 
-    # Export logic
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        top_summary.to_excel(writer, index=True, sheet_name="Summary")
-        merged.to_excel(writer, index=False, sheet_name="Detail")
-    st.download_button("Download Results as Excel", data=output.getvalue(), file_name="gi_recon_results.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    st.success("✅ Reconciliation Completed!")
+
+    st.header("✅ Full Matches (Qty + Fee)")
+    st.dataframe(matched)
+
+    st.header("🔍 Qty Match Only (Fee mismatch)")
+    st.dataframe(qty_match_only)
+
+    st.header("🔍 Fee Match Only (Qty mismatch)")
+    st.dataframe(fee_match_only)
+
+    st.header("⚠️ No Match (Qty + Fee mismatch)")
+    st.dataframe(no_match)
+
+    # Export Excel with top summary tab
+    import io
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        top_summary = merged.groupby('CB')[['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']].sum().reset_index()
+        top_summary['Qty_Diff'] = (top_summary['Qty_Atlantis'] - top_summary['Qty_GMI']).round(2)
+        top_summary['Fee_Diff'] = (top_summary['Fee_Atlantis'] + top_summary['Fee_GMI']).round(2)
+        top_summary.to_excel(writer, sheet_name='Top Summary by CB', index=False)
+        matched.to_excel(writer, sheet_name='Full Matches', index=False)
+        qty_match_only.to_excel(writer, sheet_name='Qty Match Only', index=False)
+        fee_match_only.to_excel(writer, sheet_name='Fee Match Only', index=False)
+        no_match.to_excel(writer, sheet_name='No Match', index=False)
+
+    st.download_button(
+        label="📥 Download Reconciliation Excel",
+        data=output.getvalue(),
+        file_name="reconciliation_results.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
