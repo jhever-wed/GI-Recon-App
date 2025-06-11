@@ -77,6 +77,18 @@ if atlantis_file and gmi_file:
         with tab1:
             st.header("CB Summary")
             st.dataframe(merged)
+
+        st.subheader("📥 Download CB Summary Excel")
+        buf_cb = io.BytesIO()
+        with pd.ExcelWriter(buf_cb, engine="openpyxl") as writer:
+            merged.to_excel(writer, sheet_name='CB_Summary', index=False)
+        buf_cb.seek(0)
+        st.download_button(
+            label="Download CB Summary",
+            data=buf_cb.getvalue(),
+            file_name=f"cb_summary_{selected_month}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
         with tab2:
             mismatches = merged[(merged['qty_atlantis'] != merged['qty_gmi']) | (merged['fee_atlantis'] != merged['fee_gmi'])]
             st.header("📊 Mismatch Summary by Account & Date")
