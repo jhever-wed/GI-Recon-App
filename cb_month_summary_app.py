@@ -30,14 +30,14 @@ if atlantis_file and gmi_file:
         df1 = df1[df1['RecordType']=='TP']
 
         # Rename columns
-        df1 = df1.rename(columns={
+        df1 = df1.rename(columns={{
             'ExchangeEBCode':'CB','TradeDate':'Date',
             'Quantity':'Qty','GiveUpAmt':'Fee','ClearingAccount':'Account'
-        })
-        df2 = df2.rename(columns={
+        }})
+        df2 = df2.rename(columns={{
             'TGIVF#':'CB','TEDATE':'Date',
             'TQTY':'Qty','TFEE5':'Fee','Acct':'Account'
-        })
+        }})
 
         # Parse dates and numeric
         df1['Date'] = pd.to_datetime(df1['Date'], format='%Y%m%d', errors='coerce')
@@ -48,9 +48,9 @@ if atlantis_file and gmi_file:
 
         # Summaries
         s1 = df1.groupby(['CB','Date','Account'], dropna=False)[['Qty','Fee']].sum().reset_index()
-        s1 = s1.rename(columns={'Qty':'Qty_Atlantis','Fee':'Fee_Atlantis'})
+        s1 = s1.rename(columns={{'Qty':'Qty_Atlantis','Fee':'Fee_Atlantis'}})
         s2 = df2.groupby(['CB','Date','Account'], dropna=False)[['Qty','Fee']].sum().reset_index()
-        s2 = s2.rename(columns={'Qty':'Qty_GMI','Fee':'Fee_GMI'})
+        s2 = s2.rename(columns={{'Qty':'Qty_GMI','Fee':'Fee_GMI'}})
 
         # Merge and filter mismatches
         merged = pd.merge(s1, s2, on=['CB','Date','Account'], how='outer')
@@ -60,7 +60,7 @@ if atlantis_file and gmi_file:
             (merged['Fee_Atlantis'] != merged['Fee_GMI'])
         ].copy()
 
-        st.success(f"✅ Found {len(mismatches)} mismatches")
+        st.success(f"✅ Found {{len(mismatches)}} mismatches")
 
         st.header("📊 Mismatch Summary by Account & Date")
         st.dataframe(mismatches)
@@ -75,5 +75,5 @@ if atlantis_file and gmi_file:
             label="Download Mismatch Excel",
             data=buf.getvalue(),
             file_name="mismatch_summary.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            mime="application/vnd.openxmlformats-officedocument-spreadsheetml.sheet"
         )
