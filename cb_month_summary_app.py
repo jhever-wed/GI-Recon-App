@@ -57,7 +57,6 @@ if atlantis_file and gmi_file:
         tab1, tab2 = st.tabs(["CB Summary","Mismatch Summary"])
         with tab1:
             st.header("✅ CB Summary")
-            st.dataframe(merged)
         with tab2:
             mismatches = merged[
                 (merged['qty_atlantis'] != merged['qty_gmi']) |
