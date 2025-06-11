@@ -2,8 +2,8 @@ import streamlit as st
 import pandas as pd
 import io
 
-st.set_page_config(page_title="GI Reconciliation App", layout="wide")
-st.title("📊 GI Reconciliation – Mismatches Only")
+st.set_page_config(page_title="GI Reconciliation – Mismatch Summary", layout="wide")
+st.title("🚫 GI Reconciliation – Mismatch Summary")
 
 def load_data(file):
     ext = file.name.split('.')[-1]
@@ -29,50 +29,51 @@ if atlantis_file and gmi_file:
         df2.columns = df2.columns.str.strip()
         df1 = df1[df1['RecordType']=='TP']
 
-        # Rename Atlantis columns
+        # Rename columns
         df1 = df1.rename(columns={
             'ExchangeEBCode':'CB','TradeDate':'Date',
             'Quantity':'Qty','GiveUpAmt':'Fee','ClearingAccount':'Account'
         })
-        # Rename GMI columns
         df2 = df2.rename(columns={
             'TGIVF#':'CB','TEDATE':'Date',
             'TQTY':'Qty','TFEE5':'Fee','Acct':'Account'
         })
 
-        # Parse dates & numeric
-        df1['Date']=pd.to_datetime(df1['Date'],format='%Y%m%d',errors='coerce')
-        df2['Date']=pd.to_datetime(df2['Date'],format='%Y%m%d',errors='coerce')
+        # Parse dates and numeric
+        df1['Date'] = pd.to_datetime(df1['Date'], format='%Y%m%d', errors='coerce')
+        df2['Date'] = pd.to_datetime(df2['Date'], format='%Y%m%d', errors='coerce')
         for col in ['Qty','Fee']:
-            df1[col]=pd.to_numeric(df1[col],errors='coerce')
-            df2[col]=pd.to_numeric(df2[col],errors='coerce')
+            df1[col] = pd.to_numeric(df1[col], errors='coerce')
+            df2[col] = pd.to_numeric(df2[col], errors='coerce')
 
         # Summaries
-        s1 = df1.groupby(['CB','Date','Account'],dropna=False)[['Qty','Fee']].sum().reset_index()\
-               .rename(columns={'Qty':'Qty_Atlantis','Fee':'Fee_Atlantis'})
-        s2 = df2.groupby(['CB','Date','Account'],dropna=False)[['Qty','Fee']].sum().reset_index()\
-               .rename(columns={'Qty':'Qty_GMI','Fee':'Fee_GMI'})
+        s1 = df1.groupby(['CB','Date','Account'], dropna=False)[['Qty','Fee']].sum().reset_index()
+        s1 = s1.rename(columns={'Qty':'Qty_Atlantis','Fee':'Fee_Atlantis'})
+        s2 = df2.groupby(['CB','Date','Account'], dropna=False)[['Qty','Fee']].sum().reset_index()
+        s2 = s2.rename(columns={'Qty':'Qty_GMI','Fee':'Fee_GMI'})
 
         # Merge and filter mismatches
-        merged = pd.merge(s1,s2,on=['CB','Date','Account'],how='outer')
-        merged[['Qty_Atlantis','Fee_Atlantis','Qty_GMI','Fee_GMI']] = \
-            merged[['Qty_Atlantis','Fee_Atlantis','Qty_GMI','Fee_GMI']].fillna(0)
+        merged = pd.merge(s1, s2, on=['CB','Date','Account'], how='outer')
+        merged[['Qty_Atlantis','Fee_Atlantis','Qty_GMI','Fee_GMI']] = merged[['Qty_Atlantis','Fee_Atlantis','Qty_GMI','Fee_GMI']].fillna(0)
         mismatches = merged[
             (merged['Qty_Atlantis'] != merged['Qty_GMI']) |
             (merged['Fee_Atlantis'] != merged['Fee_GMI'])
         ].copy()
 
-        st.success("✅ Mismatches Found")
+        st.success(f"✅ Found {len(mismatches)} mismatches")
 
-        st.header("🚫 Mismatches Summary by Account & Date")
+        st.header("📊 Mismatch Summary by Account & Date")
         st.dataframe(mismatches)
 
-        # Export only mismatches
+        # Export mismatches
         st.subheader("📥 Download Mismatch Excel")
         buf = io.BytesIO()
-        with pd.ExcelWriter(buf,engine='openpyxl') as writer:
+        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
             mismatches.to_excel(writer, sheet_name='Mismatches', index=False)
         buf.seek(0)
-        st.download_button("Download Excel", buf.getvalue(),
-                           file_name="mismatch_summary.xlsx",
-                           mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        st.download_button(
+            label="Download Mismatch Excel",
+            data=buf.getvalue(),
+            file_name="mismatch_summary.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
