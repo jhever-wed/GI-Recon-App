@@ -27,39 +27,34 @@ if atlantis_file and gmi_file:
         # Normalize column names
         df1.columns = df1.columns.str.strip().str.lower()
         df2.columns = df2.columns.str.strip().str.lower()
-        
-        # Filter Atlantis
-        df1 = df1[df1.get('recordtype', '') == 'tp']
 
-        # Rename Atlantis columns
+        # Filter Atlantis records
+        df1 = df1[df1.get('recordtype', '') == 'TP']
+
+        # Rename columns uniformly
         df1 = df1.rename(columns={
-            'exchangeebcode':'cb', 'tradedate':'date',
-            'quantity':'qty', 'giveupamt':'fee', 'clearingaccount':'account'
+            'exchangeebcode':'cb','tradedate':'date',
+            'quantity':'qty','giveupamt':'fee','clearingaccount':'account'
         })
-        # Robust rename for GMI
-        col_map = {c.lower(): c for c in df2.columns}
-        if 'acct' in col_map:
-            acct = col_map['acct']
-        elif 'account' in col_map:
-            acct = col_map['account']
-        else:
-            st.error("Missing 'Acct' column in GMI file.")
-            st.stop()
-
         df2 = df2.rename(columns={
-            col_map.get('tgivf#','tgivf#'):'cb',
-            col_map.get('tedate','tedate'):'date',
-            col_map.get('tqty','tqty'):'qty',
-            col_map.get('tfee5','tfee5'):'fee',
-            acct:'account'
+            'tgivf#':'cb','tedate':'date',
+            'tqty':'qty','tfee5':'fee','acct':'account'
         })
 
-        # Parse dates & numeric
+        # Parse dates and numeric fields
         df1['date'] = pd.to_datetime(df1['date'], format='%Y%m%d', errors='coerce')
         df2['date'] = pd.to_datetime(df2['date'], format='%Y%m%d', errors='coerce')
         for col in ['qty','fee']:
             df1[col] = pd.to_numeric(df1[col], errors='coerce')
             df2[col] = pd.to_numeric(df2[col], errors='coerce')
+
+        # Month selector
+        df1['month'] = df1['date'].dt.to_period('M')
+        df2['month'] = df2['date'].dt.to_period('M')
+        months = sorted(df1['month'].dropna().unique())
+        selected_month = st.sidebar.selectbox("Select Month", months, format_func=lambda x: x.strftime("%Y-%m"))
+        df1 = df1[df1['month'] == selected_month]
+        df2 = df2[df2['month'] == selected_month]
 
         # Summaries
         s1 = df1.groupby(['cb','date','account'], dropna=False)[['qty','fee']].sum().reset_index()
@@ -75,7 +70,7 @@ if atlantis_file and gmi_file:
             (merged['fee_atlantis'] != merged['fee_gmi'])
         ].copy()
 
-        st.success(f"✅ Found {len(mismatches)} mismatches")
+        st.success(f"✅ Found {len(mismatches)} mismatches for {selected_month.strftime('%Y-%m')}")
 
         st.header("📊 Mismatch Summary by Account & Date")
         st.dataframe(mismatches)
@@ -89,6 +84,6 @@ if atlantis_file and gmi_file:
         st.download_button(
             label="Download Mismatch Excel",
             data=buf.getvalue(),
-            file_name="mismatch_summary.xlsx",
-            mime="application/vnd.openxmlformats-officedocument-spreadsheetml.sheet"
+            file_name=f"mismatch_summary_{selected_month}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
