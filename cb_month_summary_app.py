@@ -103,3 +103,27 @@ if atlantis_file and gmi_file:
             file_name=f"full_reconciliation_{selected_str}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
+
+# ----- New Mismatch Summary Section -----
+# Assuming 'merged' DataFrame from golden logic exists
+try:
+    mismatches = merged[
+        (merged['Qty_Atlantis'] != merged['Qty_GMI']) |
+        (merged['Fee_Atlantis'] != merged['Fee_GMI'])
+    ].copy()
+    st.header("🚫 Mismatch Summary by Account & Date")
+    st.dataframe(mismatches)
+    st.subheader("📥 Download Mismatch Excel")
+    buf_mis = io.BytesIO()
+    with pd.ExcelWriter(buf_mis, engine="openpyxl") as writer:
+        mismatches.to_excel(writer, sheet_name='Mismatches', index=False)
+    buf_mis.seek(0)
+    st.download_button(
+        label="Download Mismatch Excel",
+        data=buf_mis.getvalue(),
+        file_name="mismatch_summary.xlsx",
+        mime="application/vnd.openxmlformats-officedocument-spreadsheetml.sheet"
+    )
+except NameError:
+    st.error("Mismatch section requires the reconciliation logic to define 'merged'.")
