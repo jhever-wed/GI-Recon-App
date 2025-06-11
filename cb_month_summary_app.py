@@ -6,10 +6,10 @@ st.set_page_config(page_title="GI Reconciliation – Mismatch Summary", layout="
 st.title("🚫 GI Reconciliation – Mismatch Summary")
 
 def load_data(file):
-    ext = file.name.split('.')[-1]
-    if ext.lower() == 'csv':
+    ext = file.name.split('.')[-1].lower()
+    if ext == 'csv':
         return pd.read_csv(file, low_memory=False)
-    elif ext.lower() in ['xls', 'xlsx']:
+    elif ext in ['xls', 'xlsx']:
         return pd.read_excel(file)
     else:
         st.error("Unsupported file type.")
@@ -24,36 +24,55 @@ if atlantis_file and gmi_file:
     df2 = load_data(gmi_file)
 
     if df1 is not None and df2 is not None:
-        df1.columns = df1.columns.str.strip()
-        df2.columns = df2.columns.str.strip()
-        df1 = df1[df1['RecordType'] == 'TP']
+        # Normalize column names
+        df1.columns = df1.columns.str.strip().str.lower()
+        df2.columns = df2.columns.str.strip().str.lower()
+        
+        # Filter Atlantis
+        df1 = df1[df1.get('recordtype', '') == 'tp']
 
+        # Rename Atlantis columns
         df1 = df1.rename(columns={
-            'ExchangeEBCode':'CB','TradeDate':'Date',
-            'Quantity':'Qty','GiveUpAmt':'Fee','ClearingAccount':'Account'
+            'exchangeebcode':'cb', 'tradedate':'date',
+            'quantity':'qty', 'giveupamt':'fee', 'clearingaccount':'account'
         })
+        # Robust rename for GMI
+        col_map = {c.lower(): c for c in df2.columns}
+        if 'acct' in col_map:
+            acct = col_map['acct']
+        elif 'account' in col_map:
+            acct = col_map['account']
+        else:
+            st.error("Missing 'Acct' column in GMI file.")
+            st.stop()
+
         df2 = df2.rename(columns={
-            'TGIVF#':'CB','TEDATE':'Date',
-            'TQTY':'Qty','TFEE5':'Fee','Acct':'Account'
+            col_map.get('tgivf#','tgivf#'):'cb',
+            col_map.get('tedate','tedate'):'date',
+            col_map.get('tqty','tqty'):'qty',
+            col_map.get('tfee5','tfee5'):'fee',
+            acct:'account'
         })
 
-        df1['Date'] = pd.to_datetime(df1['Date'], format='%Y%m%d', errors='coerce')
-        df2['Date'] = pd.to_datetime(df2['Date'], format='%Y%m%d', errors='coerce')
-        for col in ['Qty','Fee']:
+        # Parse dates & numeric
+        df1['date'] = pd.to_datetime(df1['date'], format='%Y%m%d', errors='coerce')
+        df2['date'] = pd.to_datetime(df2['date'], format='%Y%m%d', errors='coerce')
+        for col in ['qty','fee']:
             df1[col] = pd.to_numeric(df1[col], errors='coerce')
             df2[col] = pd.to_numeric(df2[col], errors='coerce')
 
-        s1 = df1.groupby(['CB','Date','Account'], dropna=False)[['Qty','Fee']].sum().reset_index()
-        s1 = s1.rename(columns={'Qty':'Qty_Atlantis','Fee':'Fee_Atlantis'})
-        s2 = df2.groupby(['CB','Date','Account'], dropna=False)[['Qty','Fee']].sum().reset_index()
-        s2 = s2.rename(columns={'Qty':'Qty_GMI','Fee':'Fee_GMI'})
+        # Summaries
+        s1 = df1.groupby(['cb','date','account'], dropna=False)[['qty','fee']].sum().reset_index()
+        s1 = s1.rename(columns={'qty':'qty_atlantis','fee':'fee_atlantis'})
+        s2 = df2.groupby(['cb','date','account'], dropna=False)[['qty','fee']].sum().reset_index()
+        s2 = s2.rename(columns={'qty':'qty_gmi','fee':'fee_gmi'})
 
-        merged = pd.merge(s1, s2, on=['CB','Date','Account'], how='outer')
-        merged[['Qty_Atlantis','Fee_Atlantis','Qty_GMI','Fee_GMI']] = merged[['Qty_Atlantis','Fee_Atlantis','Qty_GMI','Fee_GMI']].fillna(0)
-
+        # Merge and filter mismatches
+        merged = pd.merge(s1, s2, on=['cb','date','account'], how='outer')
+        merged[['qty_atlantis','fee_atlantis','qty_gmi','fee_gmi']] = merged[['qty_atlantis','fee_atlantis','qty_gmi','fee_gmi']].fillna(0)
         mismatches = merged[
-            (merged['Qty_Atlantis'] != merged['Qty_GMI']) |
-            (merged['Fee_Atlantis'] != merged['Fee_GMI'])
+            (merged['qty_atlantis'] != merged['qty_gmi']) |
+            (merged['fee_atlantis'] != merged['fee_gmi'])
         ].copy()
 
         st.success(f"✅ Found {len(mismatches)} mismatches")
@@ -61,6 +80,7 @@ if atlantis_file and gmi_file:
         st.header("📊 Mismatch Summary by Account & Date")
         st.dataframe(mismatches)
 
+        # Export mismatches
         st.subheader("📥 Download Mismatch Excel")
         buf = io.BytesIO()
         with pd.ExcelWriter(buf, engine="openpyxl") as writer:
