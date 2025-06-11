@@ -83,9 +83,7 @@ if atlantis_file and gmi_file:
         with pd.ExcelWriter(buf_cb, engine="openpyxl") as writer:
             merged.to_excel(writer, sheet_name='CB_Summary', index=False)
         buf_cb.seek(0)
-        st.download_button(
-            label="Download CB Summary",
-            data=buf_cb.getvalue(),
+        ,
             file_name=f"cb_summary_{selected_month}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
@@ -98,6 +96,21 @@ if atlantis_file and gmi_file:
             with pd.ExcelWriter(buf, engine="openpyxl") as writer:
                 mismatches.to_excel(writer, sheet_name='Mismatches', index=False)
             buf.seek(0)
-            st.download_button("Download Mismatch Excel", buf.getvalue(),
+            ,
                                file_name=f"mismatch_summary_{selected_month}.xlsx",
                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+# --- Single Download for Both Summaries ---
+st.subheader("📥 Download All Summaries")
+buffer_all = io.BytesIO()
+with pd.ExcelWriter(buffer_all, engine="openpyxl") as writer:
+    merged.to_excel(writer, sheet_name='CB_Summary', index=False)
+    mismatches.to_excel(writer, sheet_name='Mismatch_Summary', index=False)
+buffer_all.seek(0)
+st.download_button(
+    label="Download All Summaries",
+    data=buffer_all.getvalue(),
+    file_name=f"reconciliation_{selected_month}.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
