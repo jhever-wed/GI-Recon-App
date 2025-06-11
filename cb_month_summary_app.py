@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import io
 
-st.set_page_config(page_title="GI Reconciliation", layout="wide")
+st.set_page_config(page_title="GI Reconciliation Dashboard", layout="wide")
 st.title("📊 GI Reconciliation Dashboard")
 
 def load_data(file):
@@ -15,20 +15,24 @@ def load_data(file):
         st.error("Unsupported file type.")
         return None
 
+# Sidebar uploads
 st.sidebar.header("📄 Upload Files")
 atlantis_file = st.sidebar.file_uploader("Upload Atlantis File", type=["csv", "xls", "xlsx"])
-gmi_file     = st.sidebar.file_uploader("Upload GMI File",     type=["csv", "xls", "xlsx"])
+gmi_file = st.sidebar.file_uploader("Upload GMI File", type=["csv", "xls", "xlsx"])
 
 if atlantis_file and gmi_file:
     df1 = load_data(atlantis_file)
     df2 = load_data(gmi_file)
     if df1 is not None and df2 is not None:
-        # Normalize columns
+        # Normalize and lowercase columns
         df1.columns = df1.columns.str.strip().str.lower()
         df2.columns = df2.columns.str.strip().str.lower()
-        # Filter Atlantis
-        df1 = df1[df1.get('recordtype','')=='tp']
-        # Rename columns
+
+        # Optional recordtype filter
+        if 'recordtype' in df1.columns:
+            df1 = df1[df1['recordtype'].str.lower() == 'tp']
+
+        # Rename columns uniformly
         df1 = df1.rename(columns={
             'exchangeebcode':'cb','tradedate':'date',
             'quantity':'qty','giveupamt':'fee','clearingaccount':'account'
@@ -37,23 +41,37 @@ if atlantis_file and gmi_file:
             'tgivf#':'cb','tedate':'date',
             'tqty':'qty','tfee5':'fee','acct':'account'
         })
-        # Parse and numeric
+
+        # Parse dates & numeric
         df1['date'] = pd.to_datetime(df1['date'], format='%Y%m%d', errors='coerce')
         df2['date'] = pd.to_datetime(df2['date'], format='%Y%m%d', errors='coerce')
         for col in ['qty','fee']:
             df1[col] = pd.to_numeric(df1[col], errors='coerce')
             df2[col] = pd.to_numeric(df2[col], errors='coerce')
-        # Month selector
+
+        # Month period
         df1['month'] = df1['date'].dt.to_period('M')
         df2['month'] = df2['date'].dt.to_period('M')
-        months = sorted(df1['month'].dropna().unique())
+
+        # Dropdown for union of months
+        months = sorted(set(df1['month'].dropna()).union(df2['month'].dropna()))
+        if not months:
+            st.error("No valid dates found to select a month.")
+            st.stop()
         selected_month = st.sidebar.selectbox("Select Month", months, format_func=lambda x: x.strftime("%Y-%m"))
-        df1 = df1[df1['month']==selected_month]
-        df2 = df2[df2['month']==selected_month]
+
+        # Filter by selected month
+        df1 = df1[df1['month'] == selected_month]
+        df2 = df2[df2['month'] == selected_month]
+
         # Summaries
-        s1 = df1.groupby(['cb','date','account'], dropna=False)[['qty','fee']].sum().reset_index().rename(columns={'qty':'qty_atlantis','fee':'fee_atlantis'})
-        s2 = df2.groupby(['cb','date','account'], dropna=False)[['qty','fee']].sum().reset_index().rename(columns={'qty':'qty_gmi','fee':'fee_gmi'})
+        s1 = df1.groupby(['cb','date','account'], dropna=False)[['qty','fee']].sum().reset_index().rename(
+            columns={'qty':'qty_atlantis','fee':'fee_atlantis'})
+        s2 = df2.groupby(['cb','date','account'], dropna=False)[['qty','fee']].sum().reset_index().rename(
+            columns={'qty':'qty_gmi','fee':'fee_gmi'})
+
         merged = pd.merge(s1, s2, on=['cb','date','account'], how='outer').fillna(0)
+
         # Tabs
         tab1, tab2 = st.tabs(["CB Summary","Mismatch Summary"])
         with tab1:
