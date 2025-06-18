@@ -28,29 +28,31 @@ if "RECORDTYPE" in df1.columns:
     df1 = df1[df1["RECORDTYPE"] == "TP"]
 
 df1 = df1.rename(columns={
-    "EXCHANGEEBCODE": "CB", "TRADEDATE": "DATE",
-    "QUANTITY": "QTY", "GIVEUPAMT": "FEE", "CLEARINGACCOUNT": "ACCOUNT"
+    "EXCHANGEEBCODE":"CB","TRADEDATE":"DATE",
+    "QUANTITY":"QTY","GIVEUPAMT":"FEE","CLEARINGACCOUNT":"ACCOUNT"
 })
 rename_map = {}
-for col in ["TGIVF#", "TEDATE", "TQTY", "TFEE5"]:
+for col in ["TGIVF#","TEDATE","TQTY","TFEE5"]:
     if col in df2.columns:
-        rename_map[col] = {"TGIVF#":"CB", "TEDATE":"DATE", "TQTY":"QTY", "TFEE5":"FEE"}[col]
+        rename_map[col] = {"TGIVF#":"CB","TEDATE":"DATE","TQTY":"QTY","TFEE5":"FEE"}[col]
 if "ACCT" in df2.columns:
     rename_map["ACCT"] = "ACCOUNT"
 elif "ACCOUNT" in df2.columns:
     rename_map["ACCOUNT"] = "ACCOUNT"
 df2 = df2.rename(columns=rename_map)
 
-# Strip CB values to ensure consistency
+# Ensure CB consistency
 df1["CB"] = df1["CB"].astype(str).str.strip()
 df2["CB"] = df2["CB"].astype(str).str.strip()
 
+# Parse dates & numerics
 df1["DATE"] = pd.to_datetime(df1["DATE"].astype(str), format="%Y%m%d", errors="coerce")
 df2["DATE"] = pd.to_datetime(df2["DATE"].astype(str), format="%Y%m%d", errors="coerce")
-for c in ["QTY", "FEE"]:
+for c in ["QTY","FEE"]:
     df1[c] = pd.to_numeric(df1[c], errors="coerce")
     df2[c] = pd.to_numeric(df2[c], errors="coerce")
 
+# Month selection
 df1["MONTH"] = df1["DATE"].dt.to_period("M")
 df2["MONTH"] = df2["DATE"].dt.to_period("M")
 months = sorted(set(df1["MONTH"].dropna()) | set(df2["MONTH"].dropna()))
@@ -66,8 +68,8 @@ df2 = df2[df2["MONTH"] == period]
 s1 = df1.groupby("CB")[["QTY","FEE"]].sum().reset_index().rename(columns={"QTY":"QTY_ATLANTIS","FEE":"FEE_ATLANTIS"})
 s2 = df2.groupby("CB")[["QTY","FEE"]].sum().reset_index().rename(columns={"QTY":"QTY_GMI","FEE":"FEE_GMI"})
 merged = pd.merge(s1, s2, on="CB", how="outer").fillna(0)
-merged["QTY_DIFF"] = merged["QTY_ATLANTIS"] - merged["QTY_GMI"]
-merged["FEE_DIFF"] = merged["FEE_ATLANTIS"] + merged["FEE_GMI"]
+merged["QTY_DIFF"] = (merged["QTY_ATLANTIS"] - merged["QTY_GMI"]).round(2)
+merged["FEE_DIFF"] = (merged["FEE_ATLANTIS"] + merged["FEE_GMI"]).round(2)
 
 tab1, tab2 = st.tabs(["CB Summary","Mismatch Summary"])
 with tab1:
@@ -78,8 +80,8 @@ with tab2:
     details1 = df1.groupby(["CB","DATE","ACCOUNT"])[["QTY","FEE"]].sum().reset_index().rename(columns={"QTY":"QTY_ATLANTIS","FEE":"FEE_ATLANTIS"})
     details2 = df2.groupby(["CB","DATE","ACCOUNT"])[["QTY","FEE"]].sum().reset_index().rename(columns={"QTY":"QTY_GMI","FEE":"FEE_GMI"})
     details = pd.merge(details1, details2, on=["CB","DATE","ACCOUNT"], how="outer").fillna(0)
-    details["QTY_DIFF"] = details["QTY_ATLANTIS"] - details["QTY_GMI"]
-    details["FEE_DIFF"] = details["FEE_ATLANTIS"] + details["FEE_GMI"]
+    details["QTY_DIFF"] = (details["QTY_ATLANTIS"] - details["QTY_GMI"]).round(2)
+    details["FEE_DIFF"] = (details["FEE_ATLANTIS"] + details["FEE_GMI"]).round(2)
     mis_details = details[(details["QTY_DIFF"] != 0) | (details["FEE_DIFF"] != 0)]
     st.header("🚫 Mismatch Details (by Date & Account)")
     st.dataframe(mis_details)
