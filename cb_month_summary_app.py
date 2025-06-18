@@ -25,38 +25,42 @@ df1.columns = df1.columns.str.strip().str.upper()
 df2.columns = df2.columns.str.strip().str.upper()
 
 if "RECORDTYPE" in df1.columns:
-    df1 = df1[df1["RECORDTYPE"]=="TP"]
+    df1 = df1[df1["RECORDTYPE"] == "TP"]
 
 df1 = df1.rename(columns={
-    "EXCHANGEEBCODE":"CB","TRADEDATE":"DATE",
-    "QUANTITY":"QTY","GIVEUPAMT":"FEE","CLEARINGACCOUNT":"ACCOUNT"
+    "EXCHANGEEBCODE": "CB", "TRADEDATE": "DATE",
+    "QUANTITY": "QTY", "GIVEUPAMT": "FEE", "CLEARINGACCOUNT": "ACCOUNT"
 })
 rename_map = {}
-for col in ["TGIVF#","TEDATE","TQTY","TFEE5"]:
+for col in ["TGIVF#", "TEDATE", "TQTY", "TFEE5"]:
     if col in df2.columns:
-        rename_map[col] = {"TGIVF#":"CB","TEDATE":"DATE","TQTY":"QTY","TFEE5":"FEE"}[col]
+        rename_map[col] = {"TGIVF#":"CB", "TEDATE":"DATE", "TQTY":"QTY", "TFEE5":"FEE"}[col]
 if "ACCT" in df2.columns:
     rename_map["ACCT"] = "ACCOUNT"
 elif "ACCOUNT" in df2.columns:
     rename_map["ACCOUNT"] = "ACCOUNT"
 df2 = df2.rename(columns=rename_map)
 
+# Strip CB values to ensure consistency
+df1["CB"] = df1["CB"].astype(str).str.strip()
+df2["CB"] = df2["CB"].astype(str).str.strip()
+
 df1["DATE"] = pd.to_datetime(df1["DATE"].astype(str), format="%Y%m%d", errors="coerce")
 df2["DATE"] = pd.to_datetime(df2["DATE"].astype(str), format="%Y%m%d", errors="coerce")
-for c in ["QTY","FEE"]:
+for c in ["QTY", "FEE"]:
     df1[c] = pd.to_numeric(df1[c], errors="coerce")
     df2[c] = pd.to_numeric(df2[c], errors="coerce")
 
 df1["MONTH"] = df1["DATE"].dt.to_period("M")
 df2["MONTH"] = df2["DATE"].dt.to_period("M")
-months = sorted(set(df1["MONTH"].dropna())|set(df2["MONTH"].dropna()))
+months = sorted(set(df1["MONTH"].dropna()) | set(df2["MONTH"].dropna()))
 if not months:
     st.error("No data months")
     st.stop()
 sel = st.sidebar.selectbox("Select Month", [m.strftime("%Y-%m") for m in months])
 period = pd.Period(sel, freq="M")
-df1 = df1[df1["MONTH"]==period]
-df2 = df2[df2["MONTH"]==period]
+df1 = df1[df1["MONTH"] == period]
+df2 = df2[df2["MONTH"] == period]
 
 # CB-only summary
 s1 = df1.groupby("CB")[["QTY","FEE"]].sum().reset_index().rename(columns={"QTY":"QTY_ATLANTIS","FEE":"FEE_ATLANTIS"})
@@ -76,7 +80,7 @@ with tab2:
     details = pd.merge(details1, details2, on=["CB","DATE","ACCOUNT"], how="outer").fillna(0)
     details["QTY_DIFF"] = details["QTY_ATLANTIS"] - details["QTY_GMI"]
     details["FEE_DIFF"] = details["FEE_ATLANTIS"] + details["FEE_GMI"]
-    mis_details = details[(details["QTY_DIFF"]!=0)|(details["FEE_DIFF"]!=0)]
+    mis_details = details[(details["QTY_DIFF"] != 0) | (details["FEE_DIFF"] != 0)]
     st.header("🚫 Mismatch Details (by Date & Account)")
     st.dataframe(mis_details)
 
