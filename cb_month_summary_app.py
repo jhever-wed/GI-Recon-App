@@ -110,7 +110,7 @@ if atlantis_file and gmi_file:
     import io
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-    top_summary = merged.groupby(['symbol', 'CB'])[['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']].sum().reset_index()
+        top_summary = merged.groupby(['symbol', 'CB'])[['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']].sum().reset_index()
         top_summary['Qty_Diff'] = (top_summary['Qty_Atlantis'] - top_summary['Qty_GMI']).round(2)
         top_summary['Fee_Diff'] = (top_summary['Fee_Atlantis'] + top_summary['Fee_GMI']).round(2)
         top_summary.to_excel(writer, sheet_name='Top Summary by CB', index=False)
