@@ -21,17 +21,7 @@ gmi_file = st.sidebar.file_uploader("Upload GMI File", type=["csv", "xls", "xlsx
 
 if atlantis_file and gmi_file:
     df1 = load_data(atlantis_file)
-
-    # Select symbol column for Atlantis
-    symbol1 = st.selectbox('Select Atlantis symbol column', df1.columns.tolist())
-    df1['symbol'] = df1[symbol1]
-
-    df2 = load_data(gmi_file)
-
-    # Select symbol column for GMI
-    symbol2 = st.selectbox('Select GMI symbol column', df2.columns.tolist())
-    df2['symbol'] = df2[symbol2]
-
+df2 = load_data(gmi_file)
     df1.columns = df1.columns.str.strip()
     df2.columns = df2.columns.str.strip()
 
@@ -45,8 +35,6 @@ if atlantis_file and gmi_file:
         'GiveUpAmt': 'Fee',
         'ClearingAccount': 'Account'
     })
-    # Add symbol field from Atlantis
-    df1['symbol'] = df1['PRODUCT']
 
     df2 = df2.rename(columns={
         'TGIVF#': 'CB',
@@ -55,8 +43,6 @@ if atlantis_file and gmi_file:
         'TFEE5': 'Fee',
         'ACCT': 'Account'
     })
-    # Add symbol field from GMI
-    df2['symbol'] = df2['TFC']
 
     df1['Date'] = pd.to_datetime(df1['Date'].astype(str), format='%Y%m%d', errors='coerce')
     df2['Date'] = pd.to_datetime(df2['Date'].astype(str), format='%Y%m%d', errors='coerce')
@@ -74,8 +60,8 @@ if atlantis_file and gmi_file:
     df1 = df1[df1['Date'].dt.to_period('M') == selected_month]
     df2 = df2[df2['Date'].dt.to_period('M') == selected_month]
 
-    summary1 = df1.groupby(['symbol', 'CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
-    summary2 = df2.groupby(['symbol', 'CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
+    summary1 = df1.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
+    summary2 = df2.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
 
     summary1['CB'] = summary1['CB'].astype(str).str.strip()
     summary2['CB'] = summary2['CB'].astype(str).str.strip()
@@ -83,10 +69,10 @@ if atlantis_file and gmi_file:
     summary1 = summary1.rename(columns={'Qty': 'Qty_Atlantis', 'Fee': 'Fee_Atlantis'})
     summary2 = summary2.rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI'})
 
-    merged = pd.merge(summary1, summary2, on=['symbol', 'CB', 'Date', 'Account'], how='outer')
+    merged = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account'], how='outer')
 
     st.header("📊 Summary by CB")
-    top_summary = merged.groupby(['symbol', 'CB'])[['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']].sum().reset_index()
+    top_summary = merged.groupby('CB')[['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']].sum().reset_index()
     top_summary['Qty_Diff'] = (top_summary['Qty_Atlantis'] - top_summary['Qty_GMI']).round(2)
     top_summary['Fee_Diff'] = (top_summary['Fee_Atlantis'] + top_summary['Fee_GMI']).round(2)
     st.dataframe(top_summary)
@@ -120,7 +106,7 @@ if atlantis_file and gmi_file:
     import io
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        top_summary = merged.groupby(['symbol', 'CB'])[['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']].sum().reset_index()
+    top_summary = merged.groupby('CB')[['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']].sum().reset_index()
         top_summary['Qty_Diff'] = (top_summary['Qty_Atlantis'] - top_summary['Qty_GMI']).round(2)
         top_summary['Fee_Diff'] = (top_summary['Fee_Atlantis'] + top_summary['Fee_GMI']).round(2)
         top_summary.to_excel(writer, sheet_name='Top Summary by CB', index=False)
