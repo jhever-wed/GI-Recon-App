@@ -22,15 +22,15 @@ gmi_file = st.sidebar.file_uploader("Upload GMI File", type=["csv", "xls", "xlsx
 if atlantis_file and gmi_file:
     df1 = load_data(atlantis_file)
 
-# Select symbol column for Atlantis
-symbol1 = st.selectbox('Select Atlantis symbol column', df1.columns.tolist())
-df1['symbol'] = df1[symbol1]
+    # Select symbol column for Atlantis
+    symbol1 = st.selectbox('Select Atlantis symbol column', df1.columns.tolist())
+    df1['symbol'] = df1[symbol1]
 
     df2 = load_data(gmi_file)
 
-# Select symbol column for GMI
-symbol2 = st.selectbox('Select GMI symbol column', df2.columns.tolist())
-df2['symbol'] = df2[symbol2]
+    # Select symbol column for GMI
+    symbol2 = st.selectbox('Select GMI symbol column', df2.columns.tolist())
+    df2['symbol'] = df2[symbol2]
 
     df1.columns = df1.columns.str.strip()
     df2.columns = df2.columns.str.strip()
