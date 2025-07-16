@@ -11,24 +11,24 @@ except UnicodeDecodeError:
     df.columns = df.columns.str.strip()
     # Normalize date column names
     for col in df.columns:
-        if col.lower() in ['date', 'tedate', 'tradedate']:
-            df.rename(columns={col: 'DATE'}, inplace=True)
-            break
+    if col.lower() in ['date', 'tedate', 'tradedate']:
+    df.rename(columns={col: 'DATE'}, inplace=True)
+    break
     # Normalize symbol column names
     for col in df.columns:
-        if col.lower() in ['sym', 'symbol', 'product', 'tfc']:
-            df.rename(columns={col: 'SYM'}, inplace=True)
-            break
+    if col.lower() in ['sym', 'symbol', 'product', 'tfc']:
+    df.rename(columns={col: 'SYM'}, inplace=True)
+    break
     # Normalize CB column names
     for col in df.columns:
-        if col.lower() in ['cb', 'tgivf#']:
-            df.rename(columns={col: 'CB'}, inplace=True)
-            break
+    if col.lower() in ['cb', 'tgivf#']:
+    df.rename(columns={col: 'CB'}, inplace=True)
+    break
     # Normalize account column names
     for col in df.columns:
-        if col.lower() in ['account', 'acct', 'clearingaccount']:
-            df.rename(columns={col: 'Account'}, inplace=True)
-            break
+    if col.lower() in ['account', 'acct', 'clearingaccount']:
+    df.rename(columns={col: 'Account'}, inplace=True)
+    break
     return df
 
 st.title("📅 CB Month Summary")
