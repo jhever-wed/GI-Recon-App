@@ -71,7 +71,7 @@ if atlantis_file and gmi_file:
     summary1 = summary1.rename(columns={'Qty': 'Qty_Atlantis', 'Fee': 'Fee_Atlantis'})
     summary2 = summary2.rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI'})
 
-    merged = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account',SYM'], how='outer')
+    merged = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account','SYM'], how='outer')
 
     st.header("📊 Summary by CB")
     top_summary = merged.groupby('CB')[['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']].sum().reset_index()
