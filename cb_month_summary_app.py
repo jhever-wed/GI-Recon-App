@@ -32,6 +32,7 @@ if atlantis_file and gmi_file:
         'ExchangeEBCode': 'CB',
         'TradeDate': 'Date',
         'Quantity': 'Qty',
+	'Product': 'SYM',
         'GiveUpAmt': 'Fee',
         'ClearingAccount': 'Account'
     })
@@ -40,6 +41,7 @@ if atlantis_file and gmi_file:
         'TGIVF#': 'CB',
         'TEDATE': 'Date',
         'TQTY': 'Qty',
+	'TFC': 'SYM',
         'TFEE5': 'Fee',
         'ACCT': 'Account'
     })
@@ -60,8 +62,8 @@ if atlantis_file and gmi_file:
     df1 = df1[df1['Date'].dt.to_period('M') == selected_month]
     df2 = df2[df2['Date'].dt.to_period('M') == selected_month]
 
-    summary1 = df1.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
-    summary2 = df2.groupby(['CB', 'Date', 'Account'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
+    summary1 = df1.groupby(['CB', 'Date', 'Account','SYM'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
+    summary2 = df2.groupby(['CB', 'Date', 'Account','SYM'], dropna=False)[['Qty', 'Fee']].sum().reset_index()
 
     summary1['CB'] = summary1['CB'].astype(str).str.strip()
     summary2['CB'] = summary2['CB'].astype(str).str.strip()
@@ -69,7 +71,7 @@ if atlantis_file and gmi_file:
     summary1 = summary1.rename(columns={'Qty': 'Qty_Atlantis', 'Fee': 'Fee_Atlantis'})
     summary2 = summary2.rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI'})
 
-    merged = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account'], how='outer')
+    merged = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account',SYM'], how='outer')
 
     st.header("📊 Summary by CB")
     top_summary = merged.groupby('CB')[['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']].sum().reset_index()
