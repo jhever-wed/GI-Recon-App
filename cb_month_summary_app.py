@@ -11,8 +11,8 @@ def load_data(file):
 st.title("📅 CB Month Summary")
 
 # File upload
-atlantis_file = st.sidebar.file_uploader("Upload Atlantis file", type=["csv"])
-gmi_file = st.sidebar.file_uploader("Upload GMI file", type=["csv"])
+atlantis_file = st.sidebar.file_uploader("Upload Atlantis file")
+gmi_file = st.sidebar.file_uploader("Upload GMI file")
 
 # Month selector
 month_options = ["-- Select Month --"]
