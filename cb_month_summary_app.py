@@ -4,7 +4,10 @@ import pandas as pd
 import streamlit as st
 
 def load_data(file):
+    try:
     df = pd.read_csv(file)
+except UnicodeDecodeError:
+    df = pd.read_csv(file, encoding='latin-1')
     df.columns = df.columns.str.strip()
     # Normalize date column names
     for col in df.columns:
@@ -36,7 +39,7 @@ gmi_file = st.sidebar.file_uploader("Upload GMI file", type=None)
 
 # Month selector
 st.sidebar.markdown("### Select Month")
-month = st.sidebar.selectbox("Month", ["-- Select Month --"] + pd.date_range(start="2000-01-01", end=pd.Timestamp.today(), freq='M').strftime('%Y-%m').tolist())
+month = st.sidebar.selectbox("Month", ["-- Select Month --"] + pd.date_range(start="2000-01-01", end=pd.Timestamp.today(), freq='ME').strftime('%Y-%m').tolist())
 if month == "-- Select Month --":
     st.sidebar.warning("⚠️ Please select a month before running the report.")
     st.stop()
