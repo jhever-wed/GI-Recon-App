@@ -3,16 +3,21 @@ import io
 import pandas as pd
 import streamlit as st
 
-def load_data(file):
+def load_data(filepath):
+    """Load CSV with utf-8 or latin1 fallback and strip columns."""
     try:
         df = pd.read_csv(filepath)
     except UnicodeDecodeError:
-        # fall back to latin-1 if UTF-8 fails
         df = pd.read_csv(filepath, encoding='latin1')
-    # strip whitespace off columns
     df.columns = df.columns.str.strip()
-    # [rest of normalization logic here]
+    # Normalize date column names
+    for col in df.columns:
+        if col.upper().startswith('DATE'):
+            df = df.rename(columns={col: 'Date'})
+        elif col.upper().startswith('TEDATE'):
+            df = df.rename(columns={col: 'Date'})
     return df
+
 
 st.title("📅 CB Month Summary")
 
