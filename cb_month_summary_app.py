@@ -3,21 +3,33 @@ import io
 import pandas as pd
 import streamlit as st
 
-def load_data(filepath):
-    """Load CSV with utf-8 or latin1 fallback and strip columns."""
+def load_data(file):
     try:
-        df = pd.read_csv(filepath)
-    except UnicodeDecodeError:
-        df = pd.read_csv(filepath, encoding='latin1')
+    df = pd.read_csv(file)
+except UnicodeDecodeError:
+    df = pd.read_csv(file, encoding='latin-1')
     df.columns = df.columns.str.strip()
     # Normalize date column names
     for col in df.columns:
-        if col.upper().startswith('DATE'):
-            df = df.rename(columns={col: 'Date'})
-        elif col.upper().startswith('TEDATE'):
-            df = df.rename(columns={col: 'Date'})
+        if col.lower() in ['date', 'tedate', 'tradedate']:
+            df.rename(columns={col: 'DATE'}, inplace=True)
+            break
+    # Normalize symbol column names
+    for col in df.columns:
+        if col.lower() in ['sym', 'symbol', 'product', 'tfc']:
+            df.rename(columns={col: 'SYM'}, inplace=True)
+            break
+    # Normalize CB column names
+    for col in df.columns:
+        if col.lower() in ['cb', 'tgivf#']:
+            df.rename(columns={col: 'CB'}, inplace=True)
+            break
+    # Normalize account column names
+    for col in df.columns:
+        if col.lower() in ['account', 'acct', 'clearingaccount']:
+            df.rename(columns={col: 'Account'}, inplace=True)
+            break
     return df
-
 
 st.title("📅 CB Month Summary")
 
@@ -27,7 +39,8 @@ gmi_file = st.sidebar.file_uploader("Upload GMI file", type=None)
 
 # Month selector
 st.sidebar.markdown("### Select Month")
-month = st.sidebar.selectbox("Month", ["-- Select Month --"] + pd.date_range(start="2000-01-01", end=pd.Timestamp.today(), freq='ME').strftime('%Y-%m').tolist())
+months = pd.date_range(start="2000-01-01", end=pd.Timestamp.today(), freq='ME').strftime('%Y-%m').tolist()[::-1]
+month = st.sidebar.selectbox("Month", ["-- Select Month --"] + months)
 if month == "-- Select Month --":
     st.sidebar.warning("⚠️ Please select a month before running the report.")
     st.stop()
