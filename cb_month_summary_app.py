@@ -6,47 +6,64 @@ import streamlit as st
 def load_data(file):
     df = pd.read_csv(file)
     df.columns = df.columns.str.strip()
+    # Normalize date column names
+    for col in df.columns:
+        if col.lower() in ['date', 'tedate', 'tradedate']:
+            df.rename(columns={col: 'DATE'}, inplace=True)
+            break
+    # Normalize symbol column names
+    for col in df.columns:
+        if col.lower() in ['sym', 'symbol', 'product', 'tfc']:
+            df.rename(columns={col: 'SYM'}, inplace=True)
+            break
+    # Normalize CB column names
+    for col in df.columns:
+        if col.lower() in ['cb', 'tgivf#']:
+            df.rename(columns={col: 'CB'}, inplace=True)
+            break
+    # Normalize account column names
+    for col in df.columns:
+        if col.lower() in ['account', 'acct', 'clearingaccount']:
+            df.rename(columns={col: 'Account'}, inplace=True)
+            break
     return df
 
 st.title("📅 CB Month Summary")
 
-# File upload
-atlantis_file = st.sidebar.file_uploader("Upload Atlantis file")
-gmi_file = st.sidebar.file_uploader("Upload GMI file")
+# File upload (accept any file)
+atlantis_file = st.sidebar.file_uploader("Upload Atlantis file", type=None)
+gmi_file = st.sidebar.file_uploader("Upload GMI file", type=None)
 
 # Month selector
-month_options = ["-- Select Month --"]
-if atlantis_file:
-    df1 = load_data(atlantis_file)
-    month_options += sorted(df1['DATE'].str[:7].unique().tolist())
-if gmi_file:
-    df2 = load_data(gmi_file)
-    month_options += sorted(df2['TEDATE'].str[:7].unique().tolist())
-
-month = st.sidebar.selectbox("Select Month", month_options)
-
-# Require month selection before running
+st.sidebar.markdown("### Select Month")
+month = st.sidebar.selectbox("Month", ["-- Select Month --"] + pd.date_range(start="2000-01-01", end=pd.Timestamp.today(), freq='M').strftime('%Y-%m').tolist())
 if month == "-- Select Month --":
     st.sidebar.warning("⚠️ Please select a month before running the report.")
     st.stop()
 
-# After month selected, process data
-df1 = load_data(atlantis_file)
-df2 = load_data(gmi_file)
+# Load data
+if atlantis_file:
+    df1 = load_data(atlantis_file)
+else:
+    st.sidebar.warning("⚠️ Please upload the Atlantis file.")
+    st.stop()
 
-# Filter by month
-df1 = df1[df1['DATE'].str.startswith(month)]
-df2 = df2[df2['TEDATE'].str.startswith(month)]
+if gmi_file:
+    df2 = load_data(gmi_file)
+else:
+    st.sidebar.warning("⚠️ Please upload the GMI file.")
+    st.stop()
 
-# Rename and add symbol
-df1 = df1.rename(columns={'PRODUCT': 'SYM', 'TGIVF#': 'CB', 'TEDATE': 'DATE', 'TQTY': 'Qty', 'TFEE': 'Fee', 'ACCT': 'Account'})
-df1['SYM'] = df1['SYM']
-df2 = df2.rename(columns={'TFC': 'SYM', 'TGIVF#': 'CB', 'TEDATE': 'DATE', 'TQTY': 'Qty', 'TFEE': 'Fee', 'ACCT': 'Account'})
-df2['SYM'] = df2['SYM']
+# Filter by selected month
+df1 = df1[df1['DATE'].astype(str).str.startswith(month)]
+df2 = df2[df2['DATE'].astype(str).str.startswith(month)]
 
 # Summarize
-summary1 = df1.groupby(['SYM', 'CB', 'DATE', 'Account'])[['Qty', 'Fee']].sum().reset_index().rename(columns={'Qty': 'Qty_Atlantis', 'Fee': 'Fee_Atlantis'})
-summary2 = df2.groupby(['SYM', 'CB', 'DATE', 'Account'])[['Qty', 'Fee']].sum().reset_index().rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI'})
+summary1 = df1.groupby(['SYM', 'CB', 'DATE', 'Account'])[['Qty', 'Fee']].sum().reset_index()
+summary1 = summary1.rename(columns={'Qty': 'Qty_Atlantis', 'Fee': 'Fee_Atlantis'})
+
+summary2 = df2.groupby(['SYM', 'CB', 'DATE', 'Account'])[['Qty', 'Fee']].sum().reset_index()
+summary2 = summary2.rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI'})
 
 # Merge and display
 merged = pd.merge(summary1, summary2, on=['SYM', 'CB', 'DATE', 'Account'], how='outer').fillna(0)
