@@ -68,10 +68,10 @@ if atlantis_file and gmi_file:
     summary1['CB'] = summary1['CB'].astype(str).str.strip()
     summary2['CB'] = summary2['CB'].astype(str).str.strip()
 
-    summary1 = summary1.rename(columns={'Qty': 'Qty_Atlantis', 'Fee': 'Fee_Atlantis','SYM': 'Product'})
-    summary2 = summary2.rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI','SYM': 'TFC'})
+    summary1 = summary1.rename(columns={'Qty': 'Qty_Atlantis', 'Fee': 'Fee_Atlantis'})
+    summary2 = summary2.rename(columns={'Qty': 'Qty_GMI', 'Fee': 'Fee_GMI'})
 
-    merged = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account','SYM'], how='outer')
+    merged = pd.merge(summary1, summary2, on=['CB', 'Date', 'Account', 'SYM'], how='outer').rename(columns={'SYM':'symbol'})
 
     st.header("📊 Summary by CB")
     top_summary = merged.groupby('CB')[['Qty_Atlantis', 'Fee_Atlantis', 'Qty_GMI', 'Fee_GMI']].sum().reset_index()
