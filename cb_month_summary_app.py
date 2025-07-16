@@ -24,9 +24,6 @@ if gmi_file:
     month_options += sorted(df2['TEDATE'].str[:7].unique().tolist())
 
 month = st.sidebar.selectbox("Select Month", month_options)
-if not month:
-    st.warning('⚠️ Please select a month before running the report')
-    st.stop()
 
 # Require month selection before running
 if month == "-- Select Month --":
